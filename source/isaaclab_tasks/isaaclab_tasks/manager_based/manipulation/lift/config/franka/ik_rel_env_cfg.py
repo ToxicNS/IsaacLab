@@ -7,12 +7,16 @@ from isaaclab.controllers.differential_ik_cfg import DifferentialIKControllerCfg
 from isaaclab.envs.mdp.actions.actions_cfg import DifferentialInverseKinematicsActionCfg
 from isaaclab.utils import configclass
 
+
 from . import joint_pos_env_cfg
 
 ##
 # Pre-defined configs
 ##
 from isaaclab_assets.robots.franka import FRANKA_PANDA_HIGH_PD_CFG  # isort: skip
+
+from isaaclab.managers import TerminationTermCfg
+from isaaclab_tasks.manager_based.manipulation.lift.mdp.terminations import object_reached_goal
 
 
 @configclass
@@ -22,7 +26,6 @@ class FrankaCubeLiftEnvCfg(joint_pos_env_cfg.FrankaCubeLiftEnvCfg):
         super().__post_init__()
 
         # Set Franka as robot
-        # We switch here to a stiffer PD controller for IK tracking to be better.
         self.scene.robot = FRANKA_PANDA_HIGH_PD_CFG.replace(prim_path="{ENV_REGEX_NS}/Robot")
 
         # Set actions for the specific robot type (franka)
@@ -35,6 +38,16 @@ class FrankaCubeLiftEnvCfg(joint_pos_env_cfg.FrankaCubeLiftEnvCfg):
             body_offset=DifferentialInverseKinematicsActionCfg.OffsetCfg(pos=[0.0, 0.0, 0.107]),
         )
 
+        # # Add termination conditions
+        # self.terminations = {
+        #     "success": TerminationTermCfg(
+        #         #func=object_reached_goal,
+        #         #params={"threshold": 0.02},
+        #     )
+        # }
+
+        # # Set the seed for reproducibility
+        # self.seed = 42
 
 @configclass
 class FrankaCubeLiftEnvCfg_PLAY(FrankaCubeLiftEnvCfg):
