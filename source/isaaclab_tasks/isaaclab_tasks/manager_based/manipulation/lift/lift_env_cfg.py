@@ -7,7 +7,7 @@ from dataclasses import MISSING
 
 import isaaclab.sim as sim_utils
 from isaaclab.assets import ArticulationCfg, AssetBaseCfg, DeformableObjectCfg, RigidObjectCfg
-from isaaclab.envs import ManagerBasedRLEnvCfg
+from isaaclab.envs import ManagerBasedRLEnvCfg # ManagerBasedRLEnvCfg
 from isaaclab.managers import CurriculumTermCfg as CurrTerm
 from isaaclab.managers import EventTermCfg as EventTerm
 from isaaclab.managers import ObservationGroupCfg as ObsGroup
@@ -22,6 +22,8 @@ from isaaclab.utils import configclass
 from isaaclab.utils.assets import ISAAC_NUCLEUS_DIR
 
 from . import mdp
+
+import torch
 
 ##
 # Scene definition
@@ -38,7 +40,18 @@ class ObjectTableSceneCfg(InteractiveSceneCfg):
     # robots: will be populated by agent env cfg
     robot: ArticulationCfg = MISSING
     # end-effector sensor: will be populated by agent env cfg
-    ee_frame: FrameTransformerCfg = MISSING
+    #ee_frame: FrameTransformerCfg = MISSING
+    ee_frame: FrameTransformerCfg = FrameTransformerCfg(
+        prim_path="{ENV_REGEX_NS}/Robot/panda_link0",
+        debug_vis=False,
+        target_frames=[
+            FrameTransformerCfg.FrameCfg(
+                prim_path="{ENV_REGEX_NS}/Robot/panda_hand",
+                name="panda_hand",
+                offset={"pos": [0.0, 0.0, 0.1034]},
+            ),
+        ],
+    )
     # target object: will be populated by agent env cfg
     object: RigidObjectCfg | DeformableObjectCfg = MISSING
 
@@ -61,6 +74,14 @@ class ObjectTableSceneCfg(InteractiveSceneCfg):
         prim_path="/World/light",
         spawn=sim_utils.DomeLightCfg(color=(0.75, 0.75, 0.75), intensity=3000.0),
     )
+    
+    # # camera
+    # camera = AssetBaseCfg(
+    #     prim_path="{ENV_REGEX_NS}/Camera",
+    #     #collision_props=sim_utils.CollisionPropertiesCfg(),  # Habilita a colisão sem corpo rígido
+    #     init_state=AssetBaseCfg.InitialStateCfg(pos=[1.0, 0.0, 0.5], rot=[0.0, -0.18, 0.0, 0.707]),
+    #     spawn=UsdFileCfg(usd_path="file:///home/lab4/IsaacLab/source/isaaclab_tasks/isaaclab_tasks/manager_based/manipulation/objets/rsd455.usd"),
+    # )
 
 
 ##
@@ -78,7 +99,7 @@ class CommandsCfg:
         resampling_time_range=(5.0, 5.0),
         debug_vis=True,
         ranges=mdp.UniformPoseCommandCfg.Ranges(
-            pos_x=(0.4, 0.6), pos_y=(-0.25, 0.25), pos_z=(0.25, 0.5), roll=(0.0, 0.0), pitch=(0.0, 0.0), yaw=(0.0, 0.0)
+            pos_x=(0.5, 0.5), pos_y=(-0.25, -0.25), pos_z=(0.1, 0.1), roll=(0.0, 0.0), pitch=(0.0, 0.0), yaw=(0.0, 0.0)
         ),
     )
 
@@ -100,18 +121,61 @@ class ObservationsCfg:
     class PolicyCfg(ObsGroup):
         """Observations for policy group."""
 
+        actions = ObsTerm(func=mdp.last_action)
         joint_pos = ObsTerm(func=mdp.joint_pos_rel)
         joint_vel = ObsTerm(func=mdp.joint_vel_rel)
         object_position = ObsTerm(func=mdp.object_position_in_robot_root_frame)
         target_object_position = ObsTerm(func=mdp.generated_commands, params={"command_name": "object_pose"})
-        actions = ObsTerm(func=mdp.last_action)
+        #gripper_pos = ObsTerm(func=mdp.gripper_pos)
 
         def __post_init__(self):
             self.enable_corruption = True
             self.concatenate_terms = True
 
+    @configclass
+    class RGBCameraPolicyCfg(ObsGroup):
+        """Observations for policy group with RGB images."""
+
+        def __post_init__(self):
+            self.enable_corruption = False
+            self.concatenate_terms = False
+
+    @configclass
+    class SubtaskCfg(ObsGroup):
+        """Observations for subtask group."""
+
+        approach_obj = ObsTerm(
+            func=mdp.reaching_object, 
+            params={
+                #"robot_cfg": SceneEntityCfg("robot"),
+                "ee_frame_cfg": SceneEntityCfg("ee_frame"),
+                "object_cfg": SceneEntityCfg("object"),
+            },
+        )
+        grasp_obj = ObsTerm(
+            func=mdp.object_grasped,  
+            params={
+                "robot_cfg": SceneEntityCfg("robot"),
+                "ee_frame_cfg": SceneEntityCfg("ee_frame"),
+                "object_cfg": SceneEntityCfg("object"),
+            },
+        )
+        lift_obj = ObsTerm(
+            func=mdp.object_is_lifted,  
+            params={
+                "minimal_height": 0.05,  
+                "object_cfg": SceneEntityCfg("object"),
+            },
+        )
+
+        def __post_init__(self):
+            self.enable_corruption = False
+            self.concatenate_terms = False        
+
     # observation groups
     policy: PolicyCfg = PolicyCfg()
+    rgb_camera: RGBCameraPolicyCfg = RGBCameraPolicyCfg()
+    subtask_terms: SubtaskCfg = SubtaskCfg() 
 
 
 @configclass
@@ -124,7 +188,7 @@ class EventCfg:
         func=mdp.reset_root_state_uniform,
         mode="reset",
         params={
-            "pose_range": {"x": (-0.1, 0.1), "y": (-0.25, 0.25), "z": (0.0, 0.0)},
+            "pose_range": {"x": (0.0, 0.0), "y": (0.25, 0.25), "z": (0.0, 0.0), "roll": (0.0, 0.0), "pitch": (0.0, 0.0), "yaw": (0.0, 0.0)},
             "velocity_range": {},
             "asset_cfg": SceneEntityCfg("object", body_names="Object"),
         },
@@ -160,16 +224,21 @@ class RewardsCfg:
         params={"asset_cfg": SceneEntityCfg("robot")},
     )
 
-
+        
 @configclass
 class TerminationsCfg:
     """Termination terms for the MDP."""
 
+    # Condição de término por tempo limite
     time_out = DoneTerm(func=mdp.time_out, time_out=True)
 
+    # Condição de término se o objeto cair
     object_dropping = DoneTerm(
-        func=mdp.root_height_below_minimum, params={"minimum_height": -0.05, "asset_cfg": SceneEntityCfg("object")}
+        func=mdp.root_height_below_minimum,
+        params={"minimum_height": -0.05, "asset_cfg": SceneEntityCfg("object")}
     )
+
+    success = DoneTerm(func=mdp.object_reached_goal)
 
 
 @configclass
@@ -183,6 +252,7 @@ class CurriculumCfg:
     joint_vel = CurrTerm(
         func=mdp.modify_reward_weight, params={"term_name": "joint_vel", "weight": -1e-1, "num_steps": 10000}
     )
+    
 
 
 ##
@@ -206,8 +276,46 @@ class LiftEnvCfg(ManagerBasedRLEnvCfg):
     events: EventCfg = EventCfg()
     curriculum: CurriculumCfg = CurriculumCfg()
 
+    def get_observation(self, term_name: str, env_ids: list[int] | None = None) -> torch.Tensor:
+        """
+        Retorna a observação para um termo específico.
+        """
+        if env_ids is None:
+            env_ids = slice(None)
+        return self.obs_buf[term_name][env_ids]
+    
+    
+    def get_subtask_term_signals(self, env_ids: list[int] | None = None) -> dict[str, torch.Tensor]:
+        """
+        Retorna os sinais de término das subtasks.
+        """
+        return {
+            "approach_obj": self.get_observation("subtask_terms/approach_obj", env_ids),
+            "grasp_obj": self.get_observation("subtask_terms/grasp_obj", env_ids),
+            "lift_obj": self.get_observation("subtask_terms/lift_obj", env_ids),
+        }    
+    
     def __post_init__(self):
         """Post initialization."""
+        super().__post_init__()
+        
+        self.scene.ee_frame = FrameTransformerCfg(
+            prim_path="{ENV_REGEX_NS}/Robot/panda_link0",
+            debug_vis=False,
+            target_frames=[
+                FrameTransformerCfg.FrameCfg(
+                    prim_path="{ENV_REGEX_NS}/Robot/panda_hand",
+                    name="panda_hand",
+                    offset={"pos": [0.0, 0.0, 0.1034]},
+                ),
+            ],
+        )
+
+        self.subtask_configs = {
+            "approach_obj": {"eef_name": "panda_hand"},
+            "grasp_obj": {"eef_name": "panda_hand"},
+            "lift_obj": {"eef_name": "panda_hand"},
+        }
         # general settings
         self.decimation = 2
         self.episode_length_s = 5.0

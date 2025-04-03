@@ -5,7 +5,7 @@
 import gymnasium as gym
 import os
 
-from . import agents
+from . import (agents, ik_abs_env_cfg,ik_rel_env_cfg)
 
 ##
 # Register Gym environments.
@@ -67,12 +67,41 @@ gym.register(
 # Inverse Kinematics - Relative Pose Control
 ##
 
+# gym.register(
+#     id="Isaac-Lift-Cube-Franka-IK-Rel-v0",
+#     entry_point="isaaclab.envs:ManagerBasedRLMimicEnv",
+#     kwargs={
+#         "env_cfg_entry_point": "isaaclab_tasks.manager_based.manipulation.lift.lift_env_cfg:LiftEnvCfg",
+#         "robomimic_bc_cfg_entry_point": os.path.join(agents.__path__[0], "robomimic/bc.json"),
+#     },
+#     disable_env_checker=True,
+# )
+
 gym.register(
     id="Isaac-Lift-Cube-Franka-IK-Rel-v0",
-    entry_point="isaaclab.envs:ManagerBasedRLEnv",
+    entry_point="isaaclab.envs:ManagerBasedRLMimicEnv",
     kwargs={
-        "env_cfg_entry_point": f"{__name__}.ik_rel_env_cfg:FrankaCubeLiftEnvCfg",
+        "env_cfg_entry_point": ik_rel_env_cfg.FrankaCubeLiftEnvCfg,
         "robomimic_bc_cfg_entry_point": os.path.join(agents.__path__[0], "robomimic/bc.json"),
     },
     disable_env_checker=True,
 )
+
+gym.register(
+    id="Isaac-Lift-Cube-Franka-IK-abs-v0",
+    entry_point="isaaclab.envs:ManagerBasedRLMimicEnv",
+    kwargs={
+        "env_cfg_entry_point": ik_abs_env_cfg.FrankaCubeLiftEnvCfg,
+        "robomimic_bc_cfg_entry_point": os.path.join(agents.__path__[0], "robomimic/bc.json"),
+    },
+    disable_env_checker=True,
+)
+
+# gym.register(
+#     id="Isaac-Lift-Cube-Franka-IK-Rel-v0",
+#     entry_point="isaaclab.envs:ManagerBasedRLMimicEnv",
+#     kwargs={
+#         "env_cfg_entry_point": "isaaclab_tasks.manager_based.manipulation.lift.lift_env_cfg:LiftEnvCfg",
+#     },
+#     disable_env_checker=True,
+# )
