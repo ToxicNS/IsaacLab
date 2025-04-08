@@ -22,7 +22,7 @@ from isaaclab.utils import configclass
 from isaaclab.utils.assets import ISAAC_NUCLEUS_DIR
 
 from . import mdp
-
+from . import lift_env_cfg
 import torch
 
 ##
@@ -119,18 +119,33 @@ class ObservationsCfg:
 
     @configclass
     class PolicyCfg(ObsGroup):
-        """Observations for policy group."""
+        """Observations para o grupo de políticas."""
 
-        actions = ObsTerm(func=mdp.last_action)
+        # Última ação executada
+        # actions = ObsTerm(func=mdp.last_action)
+
+        # Posições e velocidades das juntas do robô
         joint_pos = ObsTerm(func=mdp.joint_pos_rel)
         joint_vel = ObsTerm(func=mdp.joint_vel_rel)
+
+        # Posição do objeto no frame raiz do robô
         object_position = ObsTerm(func=mdp.object_position_in_robot_root_frame)
+
+        # # Posição e orientação do objeto no mundo
+        # cube_positions = ObsTerm(func=mdp.cube_positions_in_world_frame)
+        # cube_orientations = ObsTerm(func=mdp.cube_orientations_in_world_frame)
+
+        # Posição alvo do objeto
         target_object_position = ObsTerm(func=mdp.generated_commands, params={"command_name": "object_pose"})
-        #gripper_pos = ObsTerm(func=mdp.gripper_pos)
+
+        # Posição e orientação do end-effector
+        eef_pos = ObsTerm(func=mdp.ee_frame_pos)
+        eef_quat = ObsTerm(func=mdp.ee_frame_quat)
 
         def __post_init__(self):
+            """Configurações adicionais."""
             self.enable_corruption = True
-            self.concatenate_terms = True
+            self.concatenate_terms = False
 
     @configclass
     class RGBCameraPolicyCfg(ObsGroup):
@@ -142,35 +157,41 @@ class ObservationsCfg:
 
     @configclass
     class SubtaskCfg(ObsGroup):
-        """Observations for subtask group."""
+        """Observações para o grupo de subtarefas."""
 
+        # Verifica se o end-effector está próximo do objeto
         approach_obj = ObsTerm(
-            func=mdp.reaching_object, 
+            func=mdp.reaching_object,
             params={
-                #"robot_cfg": SceneEntityCfg("robot"),
                 "ee_frame_cfg": SceneEntityCfg("ee_frame"),
                 "object_cfg": SceneEntityCfg("object"),
             },
         )
+
+        # Verifica se o objeto foi agarrado
         grasp_obj = ObsTerm(
-            func=mdp.object_grasped,  
+            func=mdp.object_grasped,
             params={
                 "robot_cfg": SceneEntityCfg("robot"),
                 "ee_frame_cfg": SceneEntityCfg("ee_frame"),
                 "object_cfg": SceneEntityCfg("object"),
             },
         )
+
+        # Verifica se o objeto foi levantado acima de uma altura mínima
         lift_obj = ObsTerm(
-            func=mdp.object_is_lifted,  
+            func=mdp.object_is_lifted,
             params={
-                "minimal_height": 0.05,  
+                "minimal_height": 0.05,
                 "object_cfg": SceneEntityCfg("object"),
             },
         )
 
         def __post_init__(self):
+            """Configurações adicionais."""
             self.enable_corruption = False
-            self.concatenate_terms = False        
+            self.concatenate_terms = False
+    
 
     # observation groups
     policy: PolicyCfg = PolicyCfg()

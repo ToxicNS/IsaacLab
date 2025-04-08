@@ -6,14 +6,13 @@
 from isaaclab.envs.mimic_env_cfg import MimicEnvCfg, SubTaskConfig
 from isaaclab.utils import configclass
 
-# from isaaclab_tasks.manager_based.manipulation.lift.config.franka.ik_rel_blueprint_env_cfg import (
-#     FrankaCubeLiftBlueprintEnvCfg,
-# )
+from isaaclab_tasks.manager_based.manipulation.lift.config.franka.lift_ik_rel_blueprint_env_cfg import (
+    FrankaCubeLiftBlueprintEnvCfg,
+)
 
-from isaaclab_tasks.manager_based.manipulation.lift.config.franka.ik_rel_env_cfg import FrankaCubeLiftEnvCfg
+
 @configclass
-class FrankaCubeLiftIKRelBlueprintMimicEnvCfg(FrankaCubeLiftEnvCfg, MimicEnvCfg):
- 
+class FrankaCubeLiftIKRelBlueprintMimicEnvCfg(FrankaCubeLiftBlueprintEnvCfg, MimicEnvCfg):
     """
     Isaac Lab Mimic environment config class for Franka Lift Cube IK Rel env.
     """
@@ -35,11 +34,9 @@ class FrankaCubeLiftIKRelBlueprintMimicEnvCfg(FrankaCubeLiftEnvCfg, MimicEnvCfg)
 
         # The following are the subtask configurations for the stack task.
         subtask_configs = []
-
-        # Subtarefa: Aproximar-se do objeto
         subtask_configs.append(
             SubTaskConfig(
-                object_ref="cube",
+                object_ref="object",
                 subtask_term_signal="approach_obj",
                 subtask_term_offset_range=(10, 20),
                 selection_strategy="nearest_neighbor_object",
@@ -54,7 +51,7 @@ class FrankaCubeLiftIKRelBlueprintMimicEnvCfg(FrankaCubeLiftEnvCfg, MimicEnvCfg)
         # Subtarefa: Agarrar o objeto
         subtask_configs.append(
             SubTaskConfig(
-                object_ref="cube",
+                object_ref="object",
                 subtask_term_signal="grasp_obj",
                 subtask_term_offset_range=(10, 20),
                 selection_strategy="nearest_neighbor_object",
@@ -69,7 +66,7 @@ class FrankaCubeLiftIKRelBlueprintMimicEnvCfg(FrankaCubeLiftEnvCfg, MimicEnvCfg)
         # Subtarefa: Levantar o objeto
         subtask_configs.append(
             SubTaskConfig(
-                object_ref="cube",
+                object_ref="object",
                 subtask_term_signal="lift_obj",
                 subtask_term_offset_range=(10, 20),
                 selection_strategy="nearest_neighbor_object",
