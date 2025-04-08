@@ -38,16 +38,6 @@ class FrankaCubeLiftEnvCfg(joint_pos_env_cfg.FrankaCubeLiftEnvCfg):
             body_offset=DifferentialInverseKinematicsActionCfg.OffsetCfg(pos=[0.0, 0.0, 0.107]),
         )
 
-        # # Add termination conditions
-        # self.terminations = {
-        #     "success": TerminationTermCfg(
-        #         #func=object_reached_goal,
-        #         #params={"threshold": 0.02},
-        #     )
-        # }
-
-        # # Set the seed for reproducibility
-        # self.seed = 42
 
 @configclass
 class FrankaCubeLiftEnvCfg_PLAY(FrankaCubeLiftEnvCfg):

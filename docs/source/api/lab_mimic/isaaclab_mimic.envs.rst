@@ -24,3 +24,18 @@ Franka Cube Stack IK Rel Mimic Env Cfg
   :members:
   :inherited-members:
   :show-inheritance:
+
+Franka Cube Lift IK Rel Mimic Env
+---------------------------------
+
+.. autoclass:: FrankaCubeLiftIKRelMimicEnv
+  :members:
+  :inherited-members:
+
+Franka Cube Lift IK Rel Mimic Env Cfg
+--------------------------------------
+
+.. autoclass:: FrankaCubeLiftIKRelMimicEnvCfg
+  :members:
+  :inherited-members:
+  :show-inheritance:

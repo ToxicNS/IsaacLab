@@ -60,7 +60,9 @@ class FrankaCubeLiftEnvCfg(LiftEnvCfg):
                 ),
             ),
         )
-
+        # Configuração do comando de pose do objeto
+        self.commands.object_pose.body_name = "panda_hand"
+        
         # Listens to the required transforms
         marker_cfg = FRAME_MARKER_CFG.copy()
         marker_cfg.markers["frame"].scale = (0.1, 0.1, 0.1)
