@@ -89,19 +89,33 @@ class ObjectTableSceneCfg(InteractiveSceneCfg):
 ##
 
 
+# @configclass
+# class CommandsCfg:
+#     """Command terms for the MDP."""
+
+    # object_pose = mdp.UniformPoseCommandCfg(
+    #     asset_name="robot",
+    #     body_name=MISSING,  # will be set by agent env cfg
+    #     resampling_time_range=(5.0, 5.0),
+    #     debug_vis=True,
+    #     ranges=mdp.UniformPoseCommandCfg.Ranges(
+    #         pos_x=(0.5, 0.5), pos_y=(-0.25, -0.25), pos_z=(0.1, 0.1), roll=(0.0, 0.0), pitch=(0.0, 0.0), yaw=(0.0, 0.0)
+    #     ),
+    # )
+
 @configclass
 class CommandsCfg:
     """Command terms for the MDP."""
 
-    object_pose = mdp.UniformPoseCommandCfg(
-        asset_name="robot",
-        body_name=MISSING,  # will be set by agent env cfg
-        resampling_time_range=(5.0, 5.0),
-        debug_vis=True,
-        ranges=mdp.UniformPoseCommandCfg.Ranges(
-            pos_x=(0.5, 0.5), pos_y=(-0.25, -0.25), pos_z=(0.1, 0.1), roll=(0.0, 0.0), pitch=(0.0, 0.0), yaw=(0.0, 0.0)
-        ),
-    )
+    def __post_init__(self):
+        self.object_pose = mdp.UniformPoseCommandCfg(
+            asset_name="robot",
+            resampling_time_range=(5.0, 5.0),
+            debug_vis=True,
+            ranges=mdp.UniformPoseCommandCfg.Ranges(
+                pos_x=(0.5, 0.5), pos_y=(-0.25, -0.25), pos_z=(0.1, 0.1), roll=(0.0, 0.0), pitch=(0.0, 0.0), yaw=(0.0, 0.0)
+            ),
+        )
 
 
 @configclass
@@ -316,21 +330,34 @@ class LiftEnvCfg(ManagerBasedRLEnvCfg):
             "lift_obj": self.get_observation("subtask_terms/lift_obj", env_ids),
         }    
     
-    def __post_init__(self):
-        """Post initialization."""
-        super().__post_init__()
+    # def __post_init__(self):
+    #     """Post initialization."""
+    #     super().__post_init__()
         
-        self.scene.ee_frame = FrameTransformerCfg(
-            prim_path="{ENV_REGEX_NS}/Robot/panda_link0",
-            debug_vis=False,
-            target_frames=[
-                FrameTransformerCfg.FrameCfg(
-                    prim_path="{ENV_REGEX_NS}/Robot/panda_hand",
-                    name="panda_hand",
-                    offset={"pos": [0.0, 0.0, 0.1034]},
-                ),
-            ],
+    #     self.scene.ee_frame = FrameTransformerCfg(
+    #         prim_path="{ENV_REGEX_NS}/Robot/panda_link0",
+    #         debug_vis=False,
+    #         target_frames=[
+    #             FrameTransformerCfg.FrameCfg(
+    #                 prim_path="{ENV_REGEX_NS}/Robot/panda_hand",
+    #                 name="panda_hand",
+    #                 offset={"pos": [0.0, 0.0, 0.1034]},
+    #             ),
+    #         ],
+    #     )
+
+    def __post_init__(self):
+        super().__post_init__()
+        self.commands.object_pose = mdp.UniformPoseCommandCfg(
+            asset_name="robot",
+            body_name= "panda_hand",  # Valor padrão para evitar erros
+            resampling_time_range=(5.0, 5.0),
+            debug_vis=True,
+            ranges=mdp.UniformPoseCommandCfg.Ranges(
+                pos_x=(0.5, 0.5), pos_y=(-0.25, -0.25), pos_z=(0.1, 0.1), roll=(0.0, 0.0), pitch=(0.0, 0.0), yaw=(0.0, 0.0)
+            ),
         )
+
 
         self.subtask_configs = {
             "approach_obj": {"eef_name": "panda_hand"},
