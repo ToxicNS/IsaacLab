@@ -53,7 +53,7 @@ class FrankaCubeLiftIKRelMimicEnvCfg(FrankaCubeLiftEnvCfg, MimicEnvCfg):
                 ),
             ),
         )
-        
+
         self.scene.ee_frame = FrameTransformerCfg(
             prim_path="{ENV_REGEX_NS}/Robot/panda_link0",  # Quadro de origem
             target_frames=[
@@ -97,6 +97,7 @@ class FrankaCubeLiftIKRelMimicEnvCfg(FrankaCubeLiftEnvCfg, MimicEnvCfg):
         self.datagen_config.max_num_failures = 25
         self.datagen_config.seed = 1
 
+        
         # self.commands.object_pose.body_name = "object"
         
         # Subtask configurations for the lift task

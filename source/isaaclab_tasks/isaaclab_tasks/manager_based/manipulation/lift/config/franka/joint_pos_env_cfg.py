@@ -41,7 +41,7 @@ class FrankaCubeLiftEnvCfg(LiftEnvCfg):
             close_command_expr={"panda_finger_.*": 0.0},
         )
         # Set the body name for the end effector
-        self.commands.object_pose.body_name = "panda_hand"
+        #self.commands.object_pose.body_name = None
 
         # Set Cube as object
         self.scene.object = RigidObjectCfg(
@@ -60,13 +60,12 @@ class FrankaCubeLiftEnvCfg(LiftEnvCfg):
                 ),
             ),
         )
-        # Configuração do comando de pose do objeto
-        self.commands.object_pose.body_name = "panda_hand"
-        
+       
         # Listens to the required transforms
         marker_cfg = FRAME_MARKER_CFG.copy()
         marker_cfg.markers["frame"].scale = (0.1, 0.1, 0.1)
         marker_cfg.prim_path = "/Visuals/FrameTransformer"
+
         self.scene.ee_frame = FrameTransformerCfg(
             prim_path="{ENV_REGEX_NS}/Robot/panda_link0",
             debug_vis=False,
