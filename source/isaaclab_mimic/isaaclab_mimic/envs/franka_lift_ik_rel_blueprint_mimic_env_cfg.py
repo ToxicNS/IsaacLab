@@ -10,7 +10,6 @@ from isaaclab_tasks.manager_based.manipulation.lift.config.franka.lift_ik_rel_bl
     FrankaCubeLiftBlueprintEnvCfg,
 )
 
-
 @configclass
 class FrankaCubeLiftIKRelBlueprintMimicEnvCfg(FrankaCubeLiftBlueprintEnvCfg, MimicEnvCfg):
     """
@@ -32,7 +31,7 @@ class FrankaCubeLiftIKRelBlueprintMimicEnvCfg(FrankaCubeLiftBlueprintEnvCfg, Mim
         self.datagen_config.max_num_failures = 25
         self.datagen_config.seed = 1
 
-        # The following are the subtask configurations for the stack task.
+        # The following are the subtask configurations for the lift task.
         subtask_configs = []
         subtask_configs.append(
             SubTaskConfig(
@@ -77,5 +76,21 @@ class FrankaCubeLiftIKRelBlueprintMimicEnvCfg(FrankaCubeLiftBlueprintEnvCfg, Mim
                 apply_noise_during_interpolation=False,
             )
         )
+
+        # Subtarefa: Levar o objeto para a posição alvo
+        subtask_configs.append(
+            SubTaskConfig(
+                object_ref="object",
+                subtask_term_signal="target_object_position",  # Alterado de "lift_obj" para "target_object_position"
+                subtask_term_offset_range=(10, 20),
+                selection_strategy="nearest_neighbor_object",
+                selection_strategy_kwargs={"nn_k": 3},
+                action_noise=0.03,
+                num_interpolation_steps=5,
+                num_fixed_steps=0,
+                apply_noise_during_interpolation=False,
+            )
+        )
+
 
         self.subtask_configs["franka"] = subtask_configs

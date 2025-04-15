@@ -7,7 +7,7 @@ from isaaclab.controllers.differential_ik_cfg import DifferentialIKControllerCfg
 from isaaclab.envs.mdp.actions.actions_cfg import DifferentialInverseKinematicsActionCfg
 from isaaclab.utils import configclass
 
-from . import stack_joint_pos_env_cfg
+from . import lift_joint_pos_instance_randomize_env_cfg
 
 ##
 # Pre-defined configs
@@ -16,7 +16,9 @@ from isaaclab_assets.robots.franka import FRANKA_PANDA_HIGH_PD_CFG  # isort: ski
 
 
 @configclass
-class FrankaCubeStackEnvCfg(stack_joint_pos_env_cfg.FrankaCubeStackEnvCfg):
+class FrankaCubeLiftInstanceRandomizeEnvCfg(
+    lift_joint_pos_instance_randomize_env_cfg.FrankaCubeLiftInstanceRandomizeEnvCfg
+):
     def __post_init__(self):
         # post init of parent
         super().__post_init__()
@@ -24,6 +26,9 @@ class FrankaCubeStackEnvCfg(stack_joint_pos_env_cfg.FrankaCubeStackEnvCfg):
         # Set Franka as robot
         # We switch here to a stiffer PD controller for IK tracking to be better.
         self.scene.robot = FRANKA_PANDA_HIGH_PD_CFG.replace(prim_path="{ENV_REGEX_NS}/Robot")
+
+        # Reduce the number of environments due to camera resources
+        self.scene.num_envs = 2
 
         # Set actions for the specific robot type (franka)
         self.actions.arm_action = DifferentialInverseKinematicsActionCfg(

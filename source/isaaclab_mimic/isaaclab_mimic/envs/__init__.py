@@ -22,7 +22,7 @@ gym.register(
     id="Isaac-Stack-Cube-Franka-IK-Rel-Mimic-v0",
     entry_point="isaaclab_mimic.envs:FrankaCubeStackIKRelMimicEnv",
     kwargs={
-        "env_cfg_entry_point": franka_stack_ik_rel_mimic_env_cfg.FrankaCubeStackIKRelMimicEnvCfg,
+        "env_cfg_entry_point": FrankaCubeStackIKRelMimicEnvCfg,
     },
     disable_env_checker=True,
 )
@@ -31,7 +31,7 @@ gym.register(
     id="Isaac-Stack-Cube-Franka-IK-Rel-Blueprint-Mimic-v0",
     entry_point="isaaclab_mimic.envs:FrankaCubeStackIKRelMimicEnv",
     kwargs={
-        "env_cfg_entry_point": franka_stack_ik_rel_blueprint_mimic_env_cfg.FrankaCubeStackIKRelBlueprintMimicEnvCfg,
+        "env_cfg_entry_point": FrankaCubeStackIKRelBlueprintMimicEnvCfg,
     },
     disable_env_checker=True,
 )
@@ -40,16 +40,16 @@ gym.register(
     id="Isaac-Lift-Cube-Franka-IK-Rel-Mimic-v0",
     entry_point="isaaclab_mimic.envs:FrankaCubeLiftIKRelMimicEnv",
     kwargs={
-        "env_cfg_entry_point": franka_lift_ik_rel_mimic_env_cfg.FrankaCubeLiftIKRelMimicEnvCfg,
+        "env_cfg_entry_point": FrankaCubeLiftIKRelMimicEnvCfg,
     },
     disable_env_checker=True,
 )
 
 gym.register(
     id="Isaac-Lift-Cube-Franka-IK-Rel-Blueprint-Mimic-v0",
-    entry_point="isaaclab_mimic.envs:FrankaCubeFrankaCubeLiftStackIKRelMimicEnvLiftIKRelMimicEnv",
+    entry_point="isaaclab_mimic.envs:FrankaCubeLiftIKRelMimicEnv", 
     kwargs={
-        "env_cfg_entry_point": franka_lift_ik_rel_blueprint_mimic_env_cfg.FrankaCubeLiftIKRelBlueprintMimicEnvCfg,
+        "env_cfg_entry_point": FrankaCubeLiftIKRelBlueprintMimicEnvCfg,
     },
     disable_env_checker=True,
 )

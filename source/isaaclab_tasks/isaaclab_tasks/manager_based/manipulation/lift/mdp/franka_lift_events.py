@@ -12,7 +12,7 @@ import torch
 from typing import TYPE_CHECKING
 
 import isaaclab.utils.math as math_utils
-from isaaclab.assets import Articulation, AssetBase
+from isaaclab.assets import Articulation, RigidObject, AssetBase
 from isaaclab.managers import SceneEntityCfg
 
 if TYPE_CHECKING:
@@ -72,7 +72,7 @@ def randomize_scene_lighting_domelight(
     # Set light intensity to light prim
     intensity_attr = light_prim.GetAttribute("inputs:intensity")
     intensity_attr.Set(new_intensity)
-
+    
 
 def sample_object_poses(
     num_objects: int,

@@ -14,7 +14,7 @@ from isaaclab.utils.assets import ISAACLAB_NUCLEUS_DIR
 
 import isaaclab_tasks.manager_based.manipulation.lift.mdp as mdp
 
-from . import joint_pos_env_cfg
+from . import lift_joint_pos_env_cfg
 
 ##
 # Pre-defined configs
@@ -28,35 +28,67 @@ from isaaclab_assets.robots.franka import FRANKA_PANDA_HIGH_PD_CFG  # isort: ski
 
 
 @configclass
-class FrankaCubeLiftEnvCfg(joint_pos_env_cfg.FrankaCubeLiftEnvCfg):
+class FrankaCubeLiftEnvCfg(lift_joint_pos_env_cfg.FrankaCubeLiftEnvCfg):
     def __post_init__(self):
         # post init of parent
         super().__post_init__()
+
+        # # Set Franka as robot
+        # # We switch here to a stiffer PD controller for IK tracking to be better.
+        # self.scene.robot = FRANKA_PANDA_HIGH_PD_CFG.replace(
+        #     prim_path="{ENV_REGEX_NS}/Robot",
+        #     init_state=FRANKA_PANDA_HIGH_PD_CFG.InitialStateCfg(
+        #         joint_pos=[0.0444, -0.1894, -0.1107, -2.5148, 0.0044, 2.3775, 0.6952, 0.0400, 0.0400]
+        #     )
+        # )
+
+
 
         # Set Franka as robot
-        # We switch here to a stiffer PD controller for IK tracking to be better.
-        self.scene.robot = FRANKA_PANDA_HIGH_PD_CFG.replace(prim_path="{ENV_REGEX_NS}/Robot")
+        # self.scene.robot = FRANKA_PANDA_HIGH_PD_CFG.replace(
+        #     prim_path="{ENV_REGEX_NS}/Robot",
+        #     init_state=FRANKA_PANDA_HIGH_PD_CFG.InitialStateCfg(
+        #         joint_pos={'panda_joint1': 0.0444, 'panda_joint2': -0.1894, 'panda_joint3': -0.1107, 
+        #                    'panda_joint4': -2.5148, 'panda_joint5': 0.0044, 'panda_joint6': 2.3775, 
+        #                    'panda_joint7': 0.6952, 'panda_finger_joint1': 0.0400, 'panda_finger_joint2': 0.0400}
+        #     ),
+        #     # Garantir que os atuadores estão definidos
+        #     # actuators={
+        #     #     'panda_shoulder': FRANKA_PANDA_HIGH_PD_CFG.actuators['panda_shoulder'],
+        #     #     'panda_forearm': FRANKA_PANDA_HIGH_PD_CFG.actuators['panda_forearm'],
+        #     #     'panda_hand': FRANKA_PANDA_HIGH_PD_CFG.actuators['panda_hand']
+        #     # }
+        # )
 
-        # Set actions for the specific robot type (franka)
-        self.actions.arm_action = DifferentialInverseKinematicsActionCfg(
-            asset_name="robot",
-            joint_names=["panda_joint.*"],
-            body_name="panda_hand",
-            controller=DifferentialIKControllerCfg(command_type="pose", use_relative_mode=False, ik_method="dls"),
-            body_offset=DifferentialInverseKinematicsActionCfg.OffsetCfg(pos=[0.0, 0.0, 0.107]),
-        )
+        # # Set actions for the specific robot type (franka)
+        # self.actions.arm_action = DifferentialInverseKinematicsActionCfg(
+        #     asset_name="robot",
+        #     joint_names=["panda_joint.*"],
+        #     body_name="panda_hand",
+        #     controller=DifferentialIKControllerCfg(command_type="pose", use_relative_mode=True, ik_method="dls"),
+        #     scale=0.5,
+        #     body_offset=DifferentialInverseKinematicsActionCfg.OffsetCfg(pos=[0.0, 0.0, 0.107]),
+        # )
+
+        # # Configure gripper actions
+        # self.actions.gripper_action = mdp.BinaryJointPositionActionCfg(
+        #     asset_name="robot",
+        #     joint_names=["panda_finger.*"],
+        #     open_command_expr={"panda_finger_.*": 0.04},
+        #     close_command_expr={"panda_finger_.*": 0.0},
+        # )        
 
 
-@configclass
-class FrankaCubeLiftEnvCfg_PLAY(FrankaCubeLiftEnvCfg):
-    def __post_init__(self):
-        # post init of parent
-        super().__post_init__()
-        # make a smaller scene for play
-        self.scene.num_envs = 50
-        self.scene.env_spacing = 2.5
-        # disable randomization for play
-        self.observations.policy.enable_corruption = False
+# @configclass
+# class FrankaCubeLiftEnvCfg_PLAY(FrankaCubeLiftEnvCfg):
+#     def __post_init__(self):
+#         # post init of parent
+#         super().__post_init__()
+#         # make a smaller scene for play
+#         self.scene.num_envs = 50
+#         self.scene.env_spacing = 2.5
+#         # disable randomization for play
+#         self.observations.policy.enable_corruption = False
 
 
 ##
@@ -80,9 +112,9 @@ class FrankaTeddyBearLiftEnvCfg(FrankaCubeLiftEnvCfg):
         )
 
         # Make the end effector less stiff to not hurt the poor teddy bear
-        self.scene.robot.actuators["panda_hand"].effort_limit = 50.0
-        self.scene.robot.actuators["panda_hand"].stiffness = 40.0
-        self.scene.robot.actuators["panda_hand"].damping = 10.0
+        # self.scene.robot.actuators["panda_hand"].effort_limit = 50.0
+        # self.scene.robot.actuators["panda_hand"].stiffness = 40.0
+        # self.scene.robot.actuators["panda_hand"].damping = 10.0
 
         # Disable replicate physics as it doesn't work for deformable objects
         # FIXME: This should be fixed by the PhysX replication system.
@@ -103,7 +135,7 @@ class FrankaTeddyBearLiftEnvCfg(FrankaCubeLiftEnvCfg):
         # TODO: Computing the root pose of deformable object from nodal positions is expensive.
         #       We need to fix that part before enabling these terms for the training.
         self.terminations.object_dropping = None
-        self.rewards.reaching_object = None
+        self.rewards.object_reached_goal = None
         self.rewards.lifting_object = None
         self.rewards.object_goal_tracking = None
         self.rewards.object_goal_tracking_fine_grained = None
