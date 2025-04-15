@@ -17,8 +17,18 @@ if TYPE_CHECKING:
     from isaaclab.envs import ManagerBasedRLEnv
 
 
+# def object_is_lifted(
+#     env: ManagerBasedRLEnv, minimal_height: float, object_cfg: SceneEntityCfg = SceneEntityCfg("object")
+# ) -> torch.Tensor:
+#     """Reward the agent for lifting the object above the minimal height."""
+#     object: RigidObject = env.scene[object_cfg.name]
+#     return torch.where(object.data.root_pos_w[:, 2] > minimal_height, 1.0, 0.0)
+
+
 def object_is_lifted(
-    env: ManagerBasedRLEnv, minimal_height: float, object_cfg: SceneEntityCfg = SceneEntityCfg("object")
+    env: ManagerBasedRLEnv,
+    minimal_height: float = 0.05,  # 5 cm
+    object_cfg: SceneEntityCfg = SceneEntityCfg("object"),
 ) -> torch.Tensor:
     """Reward the agent for lifting the object above the minimal height."""
     object: RigidObject = env.scene[object_cfg.name]
