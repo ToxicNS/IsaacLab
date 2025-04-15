@@ -328,10 +328,6 @@ class ObservationManager(ManagerBase):
             else:
                 group_obs[term_name] = obs
 
-        # device = self._env.device  # NS
-        # group_obs = {key: tensor.to(device) for key, tensor in group_obs.items()} # NS
-
-
         # concatenate all observations in the group together
         if self._group_obs_concatenate[group_name]:
             return torch.cat(list(group_obs.values()), dim=-1)
