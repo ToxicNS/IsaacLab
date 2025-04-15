@@ -262,7 +262,7 @@ def object_grasped(
     env: ManagerBasedRLEnv,
     ee_frame_cfg: SceneEntityCfg = SceneEntityCfg("ee_frame"),
     object_cfg: SceneEntityCfg = SceneEntityCfg("object"),
-    grasp_distance: float = 0.02,
+    grasp_distance: float = 0.02, 
 ) -> torch.Tensor:
     """Verifica se o objeto foi agarrado pelo end-effector."""
     ee_frame: FrameTransformer = env.scene[ee_frame_cfg.name]
@@ -270,7 +270,7 @@ def object_grasped(
 
     ee_pos = ee_frame.data.target_pos_w[:, 0, :]
     object_pos = object.data.root_pos_w[:, :3]
-
+    
     distance = torch.norm(ee_pos - object_pos, dim=1)
     return distance < grasp_distance
 

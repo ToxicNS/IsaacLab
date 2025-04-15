@@ -328,8 +328,8 @@ class ObservationManager(ManagerBase):
             else:
                 group_obs[term_name] = obs
 
-        device = self._env.device  # NS
-        group_obs = {key: tensor.to(device) for key, tensor in group_obs.items()} # NS
+        # device = self._env.device  # NS
+        # group_obs = {key: tensor.to(device) for key, tensor in group_obs.items()} # NS
 
 
         # concatenate all observations in the group together

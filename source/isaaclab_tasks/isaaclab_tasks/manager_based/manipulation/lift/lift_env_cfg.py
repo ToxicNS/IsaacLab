@@ -176,9 +176,9 @@ class ObservationsCfg:
         approach_obj = ObsTerm(
             func=mdp.object_reached_goal,
             params={
-                "command_name": "object_pose",  # Add the command name
-                "threshold": 0.02,  # Add a threshold value
-                "robot_cfg": SceneEntityCfg("robot"),  # Replace ee_frame_cfg with robot_cfg
+                "command_name": "object_pose",  
+                "threshold": 0.05,  
+                "robot_cfg": SceneEntityCfg("robot"),  
                 "object_cfg": SceneEntityCfg("object"),
             },
         )
@@ -204,8 +204,13 @@ class ObservationsCfg:
 
         # Substituir stacked_obj por target_object_position
         target_object_position = ObsTerm(
-            func=mdp.generated_commands, 
-            params={"command_name": "object_pose"}
+            func=mdp.object_reached_goal,
+            params={
+                "command_name": "object_pose",
+                "threshold": 0.05, 
+                "robot_cfg": SceneEntityCfg("robot"),
+                "object_cfg": SceneEntityCfg("object"),
+            },
         )
 
         def __post_init__(self):
