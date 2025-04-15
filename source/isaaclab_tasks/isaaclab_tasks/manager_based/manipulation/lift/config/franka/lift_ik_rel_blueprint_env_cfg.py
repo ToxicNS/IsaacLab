@@ -19,12 +19,17 @@ from isaaclab.sensors import Camera, CameraCfg, RayCasterCamera, TiledCamera
 from isaaclab.utils import configclass
 
 from ... import mdp
-from . import joint_pos_env_cfg
+from . import lift_joint_pos_env_cfg
 
 ##
 # Pre-defined configs
 ##
-from isaaclab_assets.robots.franka import FRANKA_PANDA_HIGH_PD_CFG  # isort: skip
+from isaaclab_assets.robots.franka import FRANKA_PANDA_HIGH_PD_CFG
+
+
+# ==========================
+# Utility Functions
+# ==========================
 
 
 def image(
@@ -56,46 +61,42 @@ def image(
     Returns:
         The images produced at the last time-step
     """
-    # extract the used quantities (to enable type-hinting)
     sensor: TiledCamera | Camera | RayCasterCamera = env.scene.sensors[sensor_cfg.name]
-
-    # obtain the input image
     images = sensor.data.output[data_type]
 
-    # depth image conversion
-    if (data_type == "distance_to_camera") and convert_perspective_to_orthogonal:
+    # Depth image conversion
+    if data_type == "distance_to_camera" and convert_perspective_to_orthogonal:
         images = math_utils.orthogonalize_perspective_depth(images, sensor.data.intrinsic_matrices)
 
-    # rgb/depth image normalization
+    # Normalization
     if normalize:
         if data_type == "rgb":
             images = images.float() / 255.0
-            mean_tensor = torch.mean(images, dim=(1, 2), keepdim=True)
-            images -= mean_tensor
+            images -= torch.mean(images, dim=(1, 2), keepdim=True)
         elif "distance_to" in data_type or "depth" in data_type:
             images[images == float("inf")] = 0
         elif data_type == "normals":
             images = (images + 1.0) * 0.5
 
+    # Save images to file
     if save_image_to_file:
         dir_path, _ = os.path.split(image_path)
         if dir_path:
             os.makedirs(dir_path, exist_ok=True)
         if images.dtype == torch.uint8:
             images = images.float() / 255.0
-        # Get total successful episodes
-        total_successes = 0
-        if hasattr(env, "recorder_manager") and env.recorder_manager is not None:
-            total_successes = env.recorder_manager.exported_successful_episode_count
-
+        total_successes = getattr(env.recorder_manager, "exported_successful_episode_count", 0)
         for tile in range(images.shape[0]):
-            tile_chw = torch.swapaxes(images[tile : tile + 1].unsqueeze(1), 1, -1).squeeze(-1)
-            filename = (
-                f"{image_path}_{data_type}_trial_{total_successes}_tile_{tile}_step_{env.common_step_counter}.png"
-            )
+            tile_chw = torch.swapaxes(images[tile:tile + 1].unsqueeze(1), 1, -1).squeeze(-1)
+            filename = f"{image_path}_{data_type}_trial_{total_successes}_tile_{tile}_step_{env.common_step_counter}.png"
             save_image(tile_chw, filename)
 
     return images.clone()
+
+
+# ==========================
+# Observation Configuration
+# ==========================
 
 
 @configclass
@@ -105,13 +106,13 @@ class ObservationsCfg:
     @configclass
     class PolicyCfg(ObsGroup):
         """Observations for policy group with state values."""
-
         actions = ObsTerm(func=mdp.last_action)
         joint_pos = ObsTerm(func=mdp.joint_pos_rel)
         joint_vel = ObsTerm(func=mdp.joint_vel_rel)
+        object = ObsTerm(func=mdp.object_obs)
         object_position = ObsTerm(func=mdp.object_position_in_robot_root_frame)
-        cube_positions = ObsTerm(func=mdp.cube_positions_in_world_frame)
-        cube_orientations = ObsTerm(func=mdp.cube_orientations_in_world_frame)
+        object_positions = ObsTerm(func=mdp.object_positions_in_world_frame)
+        object_orientations = ObsTerm(func=mdp.object_orientations_in_world_frame)
         eef_pos = ObsTerm(func=mdp.ee_frame_pos)
         eef_quat = ObsTerm(func=mdp.ee_frame_quat)
         gripper_pos = ObsTerm(func=mdp.gripper_pos)
@@ -169,44 +170,33 @@ class ObservationsCfg:
             self.enable_corruption = False
             self.concatenate_terms = False
 
-@configclass
-class ObservationsCfg:
-    """Observation specifications for the MDP."""
-
-    @configclass
-    class PolicyCfg(ObsGroup):
-        """Observations for policy group with state values."""
-
-        joint_pos = ObsTerm(func=mdp.joint_pos_rel)
-        joint_vel = ObsTerm(func=mdp.joint_vel_rel)
-        object_position = ObsTerm(func=mdp.object_position_in_robot_root_frame)
-        eef_pos = ObsTerm(func=mdp.ee_frame_pos)
-        eef_quat = ObsTerm(func=mdp.ee_frame_quat)
-        gripper_pos = ObsTerm(func=mdp.gripper_pos)
-
-        def __post_init__(self):
-            self.enable_corruption = False
-            self.concatenate_terms = False
 
     @configclass
     class SubtaskCfg(ObsGroup):
-        """Observations for subtask group."""
+        """Observações para o grupo de subtarefas."""
 
+        # Verifica se o end-effector está próximo do objeto
         approach_obj = ObsTerm(
-            func=mdp.reaching_object,
+            func=mdp.object_reached_goal,
             params={
-                "ee_frame_cfg": SceneEntityCfg("ee_frame"),
+                "command_name": "object_pose",  # Add the command name
+                "threshold": 0.02,  # Add a threshold value
+                "robot_cfg": SceneEntityCfg("robot"),  # Replace ee_frame_cfg with robot_cfg
                 "object_cfg": SceneEntityCfg("object"),
             },
         )
+
+        # Verifica se o objeto foi agarrado
         grasp_obj = ObsTerm(
             func=mdp.object_grasped,
             params={
-                "robot_cfg": SceneEntityCfg("robot"),
                 "ee_frame_cfg": SceneEntityCfg("ee_frame"),
                 "object_cfg": SceneEntityCfg("object"),
+                "grasp_distance": 0.02,
             },
         )
+
+        # Verifica se o objeto foi levantado acima de uma altura mínima
         lift_obj = ObsTerm(
             func=mdp.object_is_lifted,
             params={
@@ -215,54 +205,59 @@ class ObservationsCfg:
             },
         )
 
+        # Substituir stacked_obj por target_object_position
+        target_object_position = ObsTerm(
+            func=mdp.generated_commands, 
+            params={"command_name": "object_pose"}
+        )
+
         def __post_init__(self):
             self.enable_corruption = False
             self.concatenate_terms = False
 
     # Observation groups
     policy: PolicyCfg = PolicyCfg()
+    rgb_camera: RGBCameraPolicyCfg = RGBCameraPolicyCfg()
     subtask_terms: SubtaskCfg = SubtaskCfg()
 
 
+# ==========================
+# Environment Configuration
+# ==========================
+
+
 @configclass
-class FrankaCubeLiftBlueprintEnvCfg(joint_pos_env_cfg.LiftEnvCfg):
+class FrankaCubeLiftBlueprintEnvCfg(lift_joint_pos_env_cfg.FrankaCubeLiftEnvCfg):
     observations: ObservationsCfg = ObservationsCfg()
 
     def __post_init__(self):
-        # Post init of parent
         super().__post_init__()
 
-        # self.commands.object_pose.body_name = "object"        
-        # # Set Franka as robot
+        # Set Franka as robot
+        # We switch here to a stiffer PD controller for IK tracking to be better.
         self.scene.robot = FRANKA_PANDA_HIGH_PD_CFG.replace(prim_path="{ENV_REGEX_NS}/Robot")
         self.scene.robot.spawn.semantic_tags = [("class", "robot")]
 
-        # # Set actions for the specific robot type (Franka)
+        # Set actions for the specific robot type (franka)
         self.actions.arm_action = DifferentialInverseKinematicsActionCfg(
             asset_name="robot",
             joint_names=["panda_joint.*"],
             body_name="panda_hand",
             controller=DifferentialIKControllerCfg(command_type="pose", use_relative_mode=True, ik_method="dls"),
             scale=0.5,
-            body_offset=DifferentialInverseKinematicsActionCfg.OffsetCfg(pos=[0.0, 0.0, 0.1034]),
+            body_offset=DifferentialInverseKinematicsActionCfg.OffsetCfg(pos=[0.0, 0.0, 0.107]),
         )
+        
+        MAPPING = {
+            "class:object": (255, 36, 66, 255),
+            "class:table": (255, 237, 218, 255),
+            "class:ground": (100, 100, 100, 255),
+            "class:robot": (125, 125, 125, 255),
+            "class:UNLABELLED": (125, 125, 125, 255),
+            "class:BACKGROUND": (10, 10, 10, 255),
+        }
 
-        # self.actions.gripper_action = sim_utils.GripperActionCfg(
-        #     asset_name="robot",
-        #     joint_names=["panda_finger_joint1", "panda_finger_joint2"],
-        # )
-
-        # # Semantic segmentation mapping
-        # MAPPING = {
-        #     "class:object": (255, 36, 66, 255),
-        #     "class:table": (255, 237, 218, 255),
-        #     "class:ground": (100, 100, 100, 255),
-        #     "class:robot": (125, 125, 125, 255),
-        #     "class:UNLABELLED": (125, 125, 125, 255),
-        #     "class:BACKGROUND": (10, 10, 10, 255),
-        # }
-
-        # # Set table view camera
+        # Set table view camera
         self.scene.table_cam = CameraCfg(
             prim_path="{ENV_REGEX_NS}/table_cam",
             update_period=0.0333,
@@ -277,17 +272,17 @@ class FrankaCubeLiftBlueprintEnvCfg(joint_pos_env_cfg.LiftEnvCfg):
             offset=CameraCfg.OffsetCfg(pos=(1.0, 0.0, 0.33), rot=(-0.3799, 0.5963, 0.5963, -0.3799), convention="ros"),
         )
 
-        # # Set high table view camera
-        # self.scene.table_high_cam = CameraCfg(
-        #     prim_path="{ENV_REGEX_NS}/table_high_cam",
-        #     update_period=0.0333,
-        #     height=704,
-        #     width=1280,
-        #     data_types=["rgb", "semantic_segmentation", "normals"],
-        #     colorize_semantic_segmentation=True,
-        #     semantic_segmentation_mapping=MAPPING,
-        #     spawn=sim_utils.PinholeCameraCfg(
-        #         focal_length=24.0, focus_distance=400.0, horizontal_aperture=20.955, clipping_range=(1.5, 1.0e5)
-        #     ),
-        #     offset=CameraCfg.OffsetCfg(pos=(1.4, 1.8, 1.2), rot=(-0.1393, 0.2025, 0.8185, -0.5192), convention="ros"),
-        # )
+        # Set table view camera
+        self.scene.table_high_cam = CameraCfg(
+            prim_path="{ENV_REGEX_NS}/table_high_cam",
+            update_period=0.0333,
+            height=704,
+            width=1280,
+            data_types=["rgb", "semantic_segmentation", "normals"],
+            colorize_semantic_segmentation=True,
+            semantic_segmentation_mapping=MAPPING,
+            spawn=sim_utils.PinholeCameraCfg(
+                focal_length=24.0, focus_distance=400.0, horizontal_aperture=20.955, clipping_range=(1.5, 1.0e5)
+            ),
+            offset=CameraCfg.OffsetCfg(pos=(1.4, 1.8, 1.2), rot=(-0.1393, 0.2025, 0.8185, -0.5192), convention="ros"),
+        )

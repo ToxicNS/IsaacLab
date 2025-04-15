@@ -6,27 +6,26 @@
 from dataclasses import MISSING
 
 import isaaclab.sim as sim_utils
-from isaaclab.assets import ArticulationCfg, AssetBaseCfg, DeformableObjectCfg, RigidObjectCfg
+from isaaclab.assets import ArticulationCfg, AssetBaseCfg# , RigidObjectCfg
 from isaaclab.envs import ManagerBasedRLEnvCfg
-from isaaclab.managers import CurriculumTermCfg as CurrTerm
 from isaaclab.managers import EventTermCfg as EventTerm
 from isaaclab.managers import ObservationGroupCfg as ObsGroup
 from isaaclab.managers import ObservationTermCfg as ObsTerm
-from isaaclab.managers import RewardTermCfg as RewTerm
 from isaaclab.managers import SceneEntityCfg
 from isaaclab.managers import TerminationTermCfg as DoneTerm
 from isaaclab.scene import InteractiveSceneCfg
-from isaaclab.sensors.frame_transformer.frame_transformer_cfg import FrameTransformerCfg
+from isaaclab.sensors import CameraCfg
+from isaaclab.sensors.frame_transformer.frame_transformer_cfg import FrameTransformerCfg, OffsetCfg
 from isaaclab.sim.spawners.from_files.from_files_cfg import GroundPlaneCfg, UsdFileCfg
 from isaaclab.utils import configclass
 from isaaclab.utils.assets import ISAAC_NUCLEUS_DIR
-from isaaclab_tasks.manager_based.manipulation.lift.mdp import franka_lift_events
+# from isaaclab.sim.schemas.schemas_cfg import RigidBodyPropertiesCfg
 from . import mdp
+
 
 ##
 # Scene definition
 ##
-
 
 @configclass
 class ObjectTableSceneCfg(InteractiveSceneCfg):
@@ -37,10 +36,16 @@ class ObjectTableSceneCfg(InteractiveSceneCfg):
 
     # robots: will be populated by agent env cfg
     robot: ArticulationCfg = MISSING
+    
     # end-effector sensor: will be populated by agent env cfg
     ee_frame: FrameTransformerCfg = MISSING
+
     # target object: will be populated by agent env cfg
-    object: RigidObjectCfg | DeformableObjectCfg = MISSING
+    # object: RigidObjectCfg = MISSING
+
+    # Cameras
+    wrist_cam: CameraCfg = MISSING
+    table_cam: CameraCfg = MISSING
 
     # Table
     table = AssetBaseCfg(
@@ -61,7 +66,7 @@ class ObjectTableSceneCfg(InteractiveSceneCfg):
         prim_path="/World/light",
         spawn=sim_utils.DomeLightCfg(color=(0.75, 0.75, 0.75), intensity=3000.0),
     )
-    
+
     # # camera
     # camera = AssetBaseCfg(
     #     prim_path="{ENV_REGEX_NS}/Camera",
@@ -69,22 +74,6 @@ class ObjectTableSceneCfg(InteractiveSceneCfg):
     #     init_state=AssetBaseCfg.InitialStateCfg(pos=[1.0, 0.0, 0.5], rot=[0.0, -0.18, 0.0, 0.707]),
     #     spawn=UsdFileCfg(usd_path="file:///home/lab4/IsaacLab/source/isaaclab_tasks/isaaclab_tasks/manager_based/manipulation/objets/rsd455.usd"),
     # )
-
-    # goal pose
-    # goal = AssetBaseCfg(
-    #     prim_path="{ENV_REGEX_NS}/Goal",
-    #     init_state=AssetBaseCfg.InitialStateCfg(
-    #         # A mesma posição que está no comando
-    #         pos=[0.5, -0.25, 0.1], 
-    #         rot=[1, 0, 0, 0]
-    #     ),
-    #     spawn=UsdFileCfg(
-    #         usd_path=f"{ISAAC_NUCLEUS_DIR}/Props/Markers/sphere_marker.usd",
-    #         scale=(0.05, 0.05, 0.05),
-    #         semantic_tags=[("class", "goal")],
-    #     ),
-    # )
-
 
 ##
 # MDP settings
@@ -96,7 +85,7 @@ class CommandsCfg:
 
     object_pose = mdp.UniformPoseCommandCfg(
         asset_name="robot",
-        body_name=MISSING,
+        # body_name=MISSING,  # will be set by agent env cfg
         resampling_time_range=(5.0, 5.0),
         debug_vis=True,
         ranges=mdp.UniformPoseCommandCfg.Ranges(
@@ -168,211 +157,56 @@ class ObservationsCfg:
             self.enable_corruption = False
             self.concatenate_terms = False
 
-    @configclass
-    class SubtaskCfg(ObsGroup):
-        """Observações para o grupo de subtarefas."""
-
-        # Verifica se o end-effector está próximo do objeto
-        approach_obj = ObsTerm(
-            func=mdp.object_reached_goal,
-            params={
-                "command_name": "object_pose",  # Add the command name
-                "threshold": 0.02,  # Add a threshold value
-                "robot_cfg": SceneEntityCfg("robot"),  # Replace ee_frame_cfg with robot_cfg
-                "object_cfg": SceneEntityCfg("object"),
-            },
-        )
-
-        # Verifica se o objeto foi agarrado
-        grasp_obj = ObsTerm(
-            func=mdp.object_grasped,
-            params={
-                "ee_frame_cfg": SceneEntityCfg("ee_frame"),
-                "object_cfg": SceneEntityCfg("object"),
-                "grasp_distance": 0.02,
-            },
-        )
-
-        # Verifica se o objeto foi levantado acima de uma altura mínima
-        lift_obj = ObsTerm(
-            func=mdp.object_is_lifted,
-            params={
-                "minimal_height": 0.05,
-                "object_cfg": SceneEntityCfg("object"),
-            },
-        )
-
-        # Substituir stacked_obj por target_object_position
-        target_object_position = ObsTerm(
-            func=mdp.generated_commands, 
-            params={"command_name": "object_pose"}
-        )
-
-        def __post_init__(self):
-            """Configurações adicionais."""
-            self.enable_corruption = False
-            self.concatenate_terms = False
-    
-
     # observation groups
     policy: PolicyCfg = PolicyCfg()
     rgb_camera: RGBCameraPolicyCfg = RGBCameraPolicyCfg()
-    subtask_terms: SubtaskCfg = SubtaskCfg() 
+    
 
-
-@configclass
-class EventCfg:
-    """Unified configuration for simulation events."""
-
-    # Reset full scene
-    reset_all = EventTerm(
-        func=mdp.reset_scene_to_default,
-        mode="reset"
-    )
-
-    # Reset object position to a fixed pose
-    reset_object_position = EventTerm(
-        func=mdp.reset_root_state_uniform,
-        mode="reset",
-        params={
-            "pose_range": {
-                "x": (0.5, 0.5),
-                "y": (0.20, 0.20),
-                "z": (0.02, 0.02),
-                "yaw": (-1.0, 1.0),
-            },
-            "velocity_range": {},
-            "asset_cfg": SceneEntityCfg("object", body_names="Object"),
-        },
-    )
-
-    # Set default arm joint pose
-    init_franka_arm_pose = EventTerm(
-        func=franka_lift_events.set_default_joint_pose,
-        mode="startup",
-        params={
-            "default_pose": [0.0444, -0.1894, -0.1107, -2.5148, 0.0044, 2.3775, 0.6952, 0.0400, 0.0400],
-        },
-    )
-
-    # Randomize arm joint states (Gaussian noise)
-    randomize_franka_joint_state = EventTerm(
-        func=franka_lift_events.randomize_joint_by_gaussian_offset,
-        mode="reset",
-        params={
-            "mean": 0.0,
-            "std": 0.02,
-            "asset_cfg": SceneEntityCfg("robot"),
-        },
-    )
-
-    # Randomize object pose (only yaw changes)
-    randomize_object_pose = EventTerm(
-        func=franka_lift_events.randomize_object_pose,
-        mode="reset",
-        params={
-            "pose_range": {"x": (0.5, 0.5), "y": (0.20, 0.20), "z": (0.0203, 0.0203), "yaw": (-1.0, 1, 0)},
-            "min_separation": 0.1,
-            "asset_cfgs": [SceneEntityCfg("object")],
-        },
-    )
-
-
-
-@configclass
-class RewardsCfg:
-    """Reward terms for the MDP."""
-
-    object_reached_goal = RewTerm(func=mdp.object_ee_distance, params={"std": 0.1}, weight=1.0)
-
-    lifting_object = RewTerm(func=mdp.object_is_lifted, params={"minimal_height": 0.04}, weight=15.0)
-
-    object_goal_tracking = RewTerm(
-        func=mdp.object_goal_distance,
-        params={"std": 0.3, "minimal_height": 0.04, "command_name": "object_pose"},
-        weight=16.0,
-    )
-
-    object_goal_tracking_fine_grained = RewTerm(
-        func=mdp.object_goal_distance,
-        params={"std": 0.05, "minimal_height": 0.04, "command_name": "object_pose"},
-        weight=5.0,
-    )
-
-    # action penalty
-    action_rate = RewTerm(func=mdp.action_rate_l2, weight=-1e-4)
-
-    joint_vel = RewTerm(
-        func=mdp.joint_vel_l2,
-        weight=-1e-4,
-        params={"asset_cfg": SceneEntityCfg("robot")},
-    )
-
-        
 @configclass
 class TerminationsCfg:
     """Termination terms for the MDP."""
 
-    # Condição de término por tempo limite
     time_out = DoneTerm(func=mdp.time_out, time_out=True)
-
-    # Condição de término se o objeto cair
+    
     object_dropping = DoneTerm(
         func=mdp.root_height_below_minimum,
         params={"minimum_height": -0.05, "asset_cfg": SceneEntityCfg("object")}
     )
-
-    # success = DoneTerm(
-    #     func=mdp.object_reached_goal,
-    #     params={
-    #         "command_name": "object_pose",
-    #         "threshold": 0.05,
-    #         "object_cfg": SceneEntityCfg("object"),
-    #     },
-    # )
-
-    success = DoneTerm(func=mdp.object_reached_goal)    
-
-@configclass
-class CurriculumCfg:
-    """Curriculum terms for the MDP."""
-
-    action_rate = CurrTerm(
-        func=mdp.modify_reward_weight, params={"term_name": "action_rate", "weight": -1e-1, "num_steps": 10000}
+    
+    success = DoneTerm(
+        func=mdp.object_reached_goal,
+        params={
+            "command_name": "object_pose",
+            "threshold": 0.05,
+            "object_cfg": SceneEntityCfg("object"),
+        },
     )
 
-    joint_vel = CurrTerm(
-        func=mdp.modify_reward_weight, params={"term_name": "joint_vel", "weight": -1e-1, "num_steps": 10000}
-    )  
-
-
-##
-# Environment configuration
-##
-
-
 @configclass
-class LiftEnvCfg(ManagerBasedRLEnvCfg):
-    """Configuration for the lifting environment."""
-
+class LiftInstanceRandomizeEnvCfg(ManagerBasedRLEnvCfg):
+    """Configuration for the lifting environment."""    
+    
     # Scene settings
-    scene: ObjectTableSceneCfg = ObjectTableSceneCfg(num_envs=4096, env_spacing=2.5)
+    scene: ObjectTableSceneCfg = ObjectTableSceneCfg(num_envs=4096, env_spacing=2.5, replicate_physics=False)
     # Basic settings
     observations: ObservationsCfg = ObservationsCfg()
     actions: ActionsCfg = ActionsCfg()
     # MDP settings
-    rewards: RewardsCfg = RewardsCfg()  
     terminations: TerminationsCfg = TerminationsCfg()
-    commands: CommandsCfg = CommandsCfg()  
+    # Commands
+    commands: CommandsCfg = CommandsCfg()
 
-    events: EventCfg = EventCfg() 
-    curriculum: CurriculumCfg = CurriculumCfg() 
+
+    # Unused managers - defina explicitamente como None em vez de comentar
+    rewards = None
+    events = None
+    curriculum = None
 
     def __post_init__(self):
         """Post initialization."""
         # general settings
-        self.decimation = 2
-        self.episode_length_s = 30.0
+        self.decimation = 5
+        self.episode_length_s = 30.0  # Tarefa de lift é mais simples, menor duração
         # simulation settings
         self.sim.dt = 0.01  # 100Hz
         self.sim.render_interval = self.decimation

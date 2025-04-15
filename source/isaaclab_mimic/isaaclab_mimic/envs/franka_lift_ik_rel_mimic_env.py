@@ -10,41 +10,22 @@ import isaaclab.utils.math as PoseUtils
 from isaaclab.envs import ManagerBasedRLMimicEnv
 
 
-import isaaclab.utils.math as PoseUtils
-from isaaclab.envs import ManagerBasedRLMimicEnv
-from argparse import Namespace
-
 class FrankaCubeLiftIKRelMimicEnv(ManagerBasedRLMimicEnv):
     """
     Isaac Lab Mimic environment wrapper class for Franka Cube Lift IK Rel env.
     """
 
-    # def __init__(self, cfg, env_cfg_entry_point=None):
-    #     super().__init__(cfg=cfg)
-    #     self.env_cfg_entry_point = env_cfg_entry_point
-
-    #     # Log para verificar subtask_configs
-    #     print(f"Subtask configs: {cfg.subtask_configs}")
-
-    #     # Certifique-se de que pelo menos um end-effector está configurado
-    #     if len(cfg.subtask_configs) < 1:
-    #         raise ValueError("O ambiente deve ter pelo menos um end-effector configurado.")
-
-    #     # Armazene o número de ambientes como um atributo da classe
-    #     self.num_envs = getattr(cfg, "num_envs", 1)  # Valor padrão: 1
-    #     self.action_dim = getattr(cfg, "action_dim", 7)  # Valor padrão: 7 (ajuste conforme necessário)
-
-    #     # Inicializa os dados para múltiplos ambientes
-    #     self.data = Namespace(last_action=torch.zeros((self.num_envs, self.action_dim)))
-
-    #     # Certifique-se de que o atributo `num_envs` não é sobrescrito no `cfg`
-    #     if hasattr(cfg, "num_envs"):
-    #         print(f"[INFO] O atributo `num_envs` já está definido no `cfg` como {cfg.num_envs}.")
-    #     else:
-    #         print(f"[INFO] Definindo `num_envs` localmente como {self.num_envs}.")
-
     def get_robot_eef_pose(self, eef_name: str, env_ids: Sequence[int] | None = None) -> torch.Tensor:
+        """
+        Get current robot end effector pose. Should be the same frame as used by the robot end-effector controller.
 
+        Args:
+            eef_name: Name of the end effector.
+            env_ids: Environment indices to get the pose for. If None, all envs are considered.
+
+        Returns:
+            A torch.Tensor eef pose matrix. Shape is (len(env_ids), 4, 4)
+        """
         if env_ids is None:
             env_ids = slice(None)
 
@@ -52,73 +33,8 @@ class FrankaCubeLiftIKRelMimicEnv(ManagerBasedRLMimicEnv):
         eef_pos = self.obs_buf["policy"]["eef_pos"][env_ids]
         eef_quat = self.obs_buf["policy"]["eef_quat"][env_ids]
         # Quaternion format is w,x,y,z
-        return PoseUtils.make_pose(eef_pos, PoseUtils.matrix_from_quat(eef_quat))    
+        return PoseUtils.make_pose(eef_pos, PoseUtils.matrix_from_quat(eef_quat))
 
-    # def get_robot_eef_pose(self, eef_names: list[str], env_ids: Sequence[int] | None = None) -> dict[str, torch.Tensor]:
-    #     """
-    #     Obtém a pose de múltiplos end-effectors para múltiplos ambientes.
-
-    #     Args:
-    #         eef_names: Lista com os nomes dos end-effectors.
-    #         env_ids: Índices dos ambientes para obter a pose. Se None, considera todos os ambientes.
-
-    #     Returns:
-    #         Um dicionário com as poses de cada end-effector. Cada valor tem shape (len(env_ids), 4, 4).
-    #     """
-    #     if env_ids is None:
-    #         env_ids = slice(None)
-
-    #     eef_poses = {}
-    #     for eef_name in eef_names:
-    #         eef_pos = self.obs_buf["policy"]["eef_pos"][env_ids].squeeze(1)
-    #         if "eef_quat" not in self.obs_buf["policy"] or self.obs_buf["policy"]["eef_quat"].numel() == 0:
-    #             eef_quat = torch.tensor([[1.0, 0.0, 0.0, 0.0]], device=eef_pos.device).expand(eef_pos.shape[0], -1)
-    #         else:
-    #             eef_quat = self.obs_buf["policy"]["eef_quat"][env_ids]
-
-    #         eef_poses[eef_name] = PoseUtils.make_pose(eef_pos, PoseUtils.matrix_from_quat(eef_quat))
-
-    #     return eef_poses
-    
-    # def target_eef_pose_to_action(
-    #     self, target_eef_pose_dict: dict[str, torch.Tensor], gripper_action_dict: dict[str, torch.Tensor],
-    #     noise: float | None = None, env_id: int = 0
-    # ) -> torch.Tensor:
-    #     """
-    #     Converte poses alvo de múltiplos end-effectors em ações.
-
-    #     Args:
-    #         target_eef_pose_dict: Dicionário com as poses alvo de cada end-effector.
-    #         gripper_action_dict: Dicionário com as ações do gripper.
-    #         noise: Ruído a ser adicionado às ações.
-    #         env_id: Índice do ambiente.
-
-    #     Returns:
-    #         Um tensor de ações compatível com env.step().
-    #     """
-    #     actions = []
-    #     for eef_name, target_eef_pose in target_eef_pose_dict.items():
-    #         target_pos, target_rot = PoseUtils.unmake_pose(target_eef_pose)
-
-    #         curr_pose = self.get_robot_eef_pose([eef_name], env_ids=[env_id])[eef_name][0]
-    #         curr_pos, curr_rot = PoseUtils.unmake_pose(curr_pose)
-
-    #         delta_position = target_pos - curr_pos
-    #         delta_rot_mat = target_rot.matmul(curr_rot.transpose(-1, -2))
-    #         delta_quat = PoseUtils.quat_from_matrix(delta_rot_mat)
-    #         delta_rotation = PoseUtils.axis_angle_from_quat(delta_quat)
-
-    #         gripper_action = gripper_action_dict[eef_name]
-
-    #         pose_action = torch.cat([delta_position, delta_rotation], dim=0)
-    #         if noise is not None:
-    #             noise = noise * torch.randn_like(pose_action)
-    #             pose_action += noise
-    #             pose_action = torch.clamp(pose_action, -1.0, 1.0)
-
-    #         actions.append(torch.cat([pose_action, gripper_action], dim=0))
-
-    #     return torch.stack(actions, dim=0)
 
     def target_eef_pose_to_action(
         self, target_eef_pose_dict: dict, gripper_action_dict: dict, noise: float | None = None, env_id: int = 0
@@ -167,47 +83,6 @@ class FrankaCubeLiftIKRelMimicEnv(ManagerBasedRLMimicEnv):
 
         return torch.cat([pose_action, gripper_action], dim=0)
 
-    # def action_to_target_eef_pose(self, action: torch.Tensor) -> dict[str, torch.Tensor]:
-    #     """
-    #     Converts action (compatible with env.step) to a target pose for the end effector controller.
-    #     Inverse of @target_eef_pose_to_action. Usually used to infer a sequence of target controller poses
-    #     from a demonstration trajectory using the recorded actions.
-
-    #     Args:
-    #         action: Environment action. Shape is (num_envs, action_dim)
-
-    #     Returns:
-    #         A dictionary of eef pose torch.Tensor that @action corresponds to
-    #     """
-    #     eef_name = list(self.cfg.subtask_configs.keys())[0]
-
-    #     # Extrair delta de posição e rotação da ação
-    #     delta_position = action[:, :3]
-    #     delta_rotation = action[:, 3:6]
-
-    #     # Obter a pose atual (posição e rotação)
-    #     curr_pose = self.get_robot_eef_pose(eef_name, env_ids=None)
-    #     curr_pos, curr_rot = PoseUtils.unmake_pose(curr_pose)
-
-    #     # Calcular a pose de destino
-    #     target_pos = curr_pos + delta_position
-
-    #     # Converter delta_rotation para forma de eixo-ângulo
-    #     delta_rotation_angle = torch.linalg.norm(delta_rotation, dim=-1, keepdim=True)
-    #     delta_rotation_axis = delta_rotation / delta_rotation_angle
-
-    #     # Lidar com divisão inválida quando delta_rotation_angle é próximo de zero
-    #     is_close_to_zero_angle = torch.isclose(delta_rotation_angle, torch.zeros_like(delta_rotation_angle)).squeeze(1)
-    #     delta_rotation_axis[is_close_to_zero_angle] = torch.zeros_like(delta_rotation_axis)[is_close_to_zero_angle]
-
-    #     delta_quat = PoseUtils.quat_from_angle_axis(delta_rotation_angle.squeeze(1), delta_rotation_axis).squeeze(0)
-    #     delta_rot_mat = PoseUtils.matrix_from_quat(delta_quat)
-    #     target_rot = torch.matmul(delta_rot_mat, curr_rot)
-
-    #     # Criar a pose de destino
-    #     target_pose = PoseUtils.make_pose(target_pos, target_rot)
-
-    #     return {eef_name: target_pose}
 
     def action_to_target_eef_pose(self, action: torch.Tensor) -> dict[str, torch.Tensor]:
         """
@@ -248,7 +123,8 @@ class FrankaCubeLiftIKRelMimicEnv(ManagerBasedRLMimicEnv):
         target_poses = PoseUtils.make_pose(target_pos, target_rot).clone()
 
         return {eef_name: target_poses}
-        
+
+
     def actions_to_gripper_actions(self, actions: torch.Tensor) -> dict[str, torch.Tensor]:
         """
         Extracts the gripper actuation part from a sequence of env actions (compatible with env.step).
@@ -261,6 +137,7 @@ class FrankaCubeLiftIKRelMimicEnv(ManagerBasedRLMimicEnv):
         """
         # last dimension is gripper action
         return {list(self.cfg.subtask_configs.keys())[0]: actions[:, -1:]}
+    
 
     def get_subtask_term_signals(self, env_ids: Sequence[int] | None = None) -> dict[str, torch.Tensor]:
         """
@@ -281,4 +158,5 @@ class FrankaCubeLiftIKRelMimicEnv(ManagerBasedRLMimicEnv):
         signals["approach_obj"] = subtask_terms["approach_obj"][env_ids]
         signals["grasp_obj"] = subtask_terms["grasp_obj"][env_ids]
         signals["lift_obj"] = subtask_terms["lift_obj"][env_ids]
+        signals["target_object_position"] = subtask_terms["target_object_position"][env_ids]
         return signals

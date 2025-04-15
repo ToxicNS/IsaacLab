@@ -7,7 +7,7 @@ from isaaclab.controllers.operational_space_cfg import OperationalSpaceControlle
 from isaaclab.envs.mdp.actions.actions_cfg import OperationalSpaceControllerActionCfg
 from isaaclab.utils import configclass
 
-from . import joint_pos_env_cfg
+from . import lift_joint_pos_env_cfg
 
 ##
 # Pre-defined configs
@@ -16,7 +16,7 @@ from isaaclab_assets.robots.franka import FRANKA_PANDA_CFG  # isort: skip
 
 
 @configclass
-class FrankaReachEnvCfg(joint_pos_env_cfg.FrankaReachEnvCfg):
+class FrankaReachEnvCfg(lift_joint_pos_env_cfg.FrankaReachEnvCfg):
     def __post_init__(self):
         # post init of parent
         super().__post_init__()
