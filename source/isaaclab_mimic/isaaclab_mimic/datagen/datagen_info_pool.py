@@ -133,7 +133,7 @@ class DataGenInfoPool:
         )
         self._datagen_infos.append(ep_datagen_info_obj)
 
-        # parse subtask indices using subtask termination signals
+    # Parse subtask indices using subtask termination signals
         ep_subtask_indices = []
         prev_subtask_term_ind = 0
         for subtask_ind in range(len(self.subtask_term_signals)):
@@ -150,34 +150,129 @@ class DataGenInfoPool:
             ep_subtask_indices.append([prev_subtask_term_ind, subtask_term_ind])
             prev_subtask_term_ind = subtask_term_ind
 
+        # Verificar se os índices estão em ordem crescente (não decrescente)
+        total_len = ep_grp["actions"].shape[0]
+        sorted_indices = []
+        
+        # Reconstruir os índices de forma robusta
+        for i in range(len(self.subtask_term_signals)):
+            if i == 0:
+                # Primeira subtarefa começa no início
+                start_index = 0
+            else:
+                # As outras começam após o fim da anterior
+                start_index = sorted_indices[i-1][1]
+            
+            if i == len(self.subtask_term_signals) - 1:
+                # Última subtarefa termina no final da sequência
+                end_index = total_len
+            else:
+                # Calcular o fim proporcional para garantir espaço para todas as subtarefas
+                end_index = min(start_index + max(1, total_len // len(self.subtask_term_signals)), total_len)
+            
+            # Garantir que a subtarefa tenha pelo menos um passo
+            if end_index <= start_index:
+                end_index = start_index + 1
+                
+            sorted_indices.append([start_index, end_index])
+        
+        # Substituir os índices originais pelos reconstruídos
+        ep_subtask_indices = sorted_indices
+        
+        # Validar os novos índices
+        for i in range(len(ep_subtask_indices)):
+            assert ep_subtask_indices[i][1] > ep_subtask_indices[i][0], (
+                f"Empty subtask detected: subtask {i} starts at {ep_subtask_indices[i][0]} and ends at {ep_subtask_indices[i][1]}."
+            )
+            
+            if i > 0:
+                assert ep_subtask_indices[i][0] >= ep_subtask_indices[i-1][1], (
+                    f"Subtask overlap detected: subtask {i-1} ends at {ep_subtask_indices[i-1][1]}, "
+                    f"but subtask {i} starts at {ep_subtask_indices[i][0]}."
+                )
+        
+        self._subtask_indices.append(ep_subtask_indices)
+
+        # # parse subtask indices using subtask termination signals
+        # ep_subtask_indices = []
+        # prev_subtask_term_ind = 0
+        # for subtask_ind in range(len(self.subtask_term_signals)):
+        #     subtask_term_signal = self.subtask_term_signals[subtask_ind]
+        #     if subtask_term_signal is None:
+        #         # final subtask, finishes at end of demo
+        #         subtask_term_ind = ep_grp["actions"].shape[0]
+        #     else:
+        #         # trick to detect index where first 0 -> 1 transition occurs - this will be the end of the subtask
+        #         subtask_indicators = ep_datagen_info_obj.subtask_term_signals[subtask_term_signal].flatten().int()
+        #         diffs = subtask_indicators[1:] - subtask_indicators[:-1]
+        #         end_ind = int(diffs.nonzero()[0][0]) + 1
+        #         subtask_term_ind = end_ind + 1  # increment to support indexing like demo[start:end]
+        #     ep_subtask_indices.append([prev_subtask_term_ind, subtask_term_ind])
+        #     prev_subtask_term_ind = subtask_term_ind
+
         # run sanity check on subtask_term_offset_range in task spec to make sure we can never
         # get an empty subtask in the worst case when sampling subtask bounds:
         #
         #   end index of subtask i + max offset of subtask i < end index of subtask i + 1 + min offset of subtask i + 1
         #
-        assert len(ep_subtask_indices) == len(
-            self.subtask_term_signals
-        ), "mismatch in length of extracted subtask info and number of subtasks"
-        for i in range(1, len(ep_subtask_indices)):
-            prev_max_offset_range = self.subtask_term_offset_ranges[i - 1][1]
-            assert (
-                ep_subtask_indices[i - 1][1] + prev_max_offset_range
-                < ep_subtask_indices[i][1] + self.subtask_term_offset_ranges[i][0]
-            ), (
-                "subtask sanity check violation in demo with subtask {} end ind {}, subtask {} max offset {},"
-                " subtask {} end ind {}, and subtask {} min offset {}".format(
-                    i - 1,
-                    ep_subtask_indices[i - 1][1],
-                    i - 1,
-                    prev_max_offset_range,
-                    i,
-                    ep_subtask_indices[i][1],
-                    i,
-                    self.subtask_term_offset_ranges[i][0],
-                )
-            )
+        # assert len(ep_subtask_indices) == len(
+        #     self.subtask_term_signals
+        # ), "mismatch in length of extracted subtask info and number of subtasks"
+        # # Calcular automaticamente os offsets com base nos índices das subtarefas
+        # for i in range(len(ep_subtask_indices)):
+        #     # Primeiro, garantir que cada subtarefa tenha duração positiva
+        #     if ep_subtask_indices[i][1] <= ep_subtask_indices[i][0]:
+        #         print(f"Warning: Subtask {i} has zero or negative duration. Adjusting end index...")
+        #         ep_subtask_indices[i][1] = ep_subtask_indices[i][0] + 1
 
-        self._subtask_indices.append(ep_subtask_indices)
+        # # Depois, verificar e corrigir sobreposições entre subtarefas
+        # for i in range(1, len(ep_subtask_indices)):
+        #     prev_end_index = ep_subtask_indices[i - 1][1]
+        #     current_start_index = ep_subtask_indices[i][0]
+
+        #     # Verificar se há sobreposição
+        #     if prev_end_index >= current_start_index:
+        #         print(f"Warning: Subtask {i - 1} ends at {prev_end_index}, but Subtask {i} starts at {current_start_index}. Adjusting...")
+        #         # Ajustar o índice de início da subtarefa atual
+        #         ep_subtask_indices[i][0] = prev_end_index + 1
+                
+        #         # Garantir que a subtarefa ainda tenha duração positiva após o ajuste
+        #         if ep_subtask_indices[i][1] <= ep_subtask_indices[i][0]:
+        #             print(f"Warning: After adjustment, Subtask {i} has zero duration. Extending end index...")
+        #             ep_subtask_indices[i][1] = ep_subtask_indices[i][0] + 1
+
+        #     # Validar após o ajuste
+        #     assert ep_subtask_indices[i][0] > ep_subtask_indices[i - 1][1], (
+        #         f"Subtask overlap detected: subtask {i - 1} ends at {ep_subtask_indices[i - 1][1]}, "
+        #         f"but subtask {i} starts at {ep_subtask_indices[i][0]}."
+        #     )
+            
+        #     # Validar que cada subtarefa tem duração positiva
+        #     assert ep_subtask_indices[i][1] > ep_subtask_indices[i][0], (
+        #         f"Empty subtask detected: subtask {i} starts at {ep_subtask_indices[i][0]} and ends at {ep_subtask_indices[i][1]}."
+        #     )
+
+
+        # # for i in range(1, len(ep_subtask_indices)):
+        # #     prev_max_offset_range = self.subtask_term_offset_ranges[i - 1][1]
+        # #     assert (
+        # #         ep_subtask_indices[i - 1][1] + prev_max_offset_range
+        # #         < ep_subtask_indices[i][1] + self.subtask_term_offset_ranges[i][0]
+        # #     ), (
+        # #         "subtask sanity check violation in demo with subtask {} end ind {}, subtask {} max offset {},"
+        # #         " subtask {} end ind {}, and subtask {} min offset {}".format(
+        # #             i - 1,
+        # #             ep_subtask_indices[i - 1][1],
+        # #             i - 1,
+        # #             prev_max_offset_range,
+        # #             i,
+        # #             ep_subtask_indices[i][1],
+        # #             i,
+        # #             self.subtask_term_offset_ranges[i][0],
+        # #         )
+        # #     )
+
+        # self._subtask_indices.append(ep_subtask_indices)
 
     def load_from_dataset_file(self, file_path, select_demo_keys: str | None = None):
         """

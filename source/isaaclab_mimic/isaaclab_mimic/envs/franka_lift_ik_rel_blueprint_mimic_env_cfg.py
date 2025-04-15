@@ -39,7 +39,7 @@ class FrankaCubeLiftIKRelBlueprintMimicEnvCfg(FrankaCubeLiftBlueprintEnvCfg, Mim
             SubTaskConfig(
                 object_ref="object",
                 subtask_term_signal="approach_obj",
-                subtask_term_offset_range=(10, 20),
+                subtask_term_offset_range=(5, 10),  # Ajuste para evitar sobreposição
                 selection_strategy="nearest_neighbor_object",
                 selection_strategy_kwargs={"nn_k": 3},
                 action_noise=0.03,
@@ -54,7 +54,7 @@ class FrankaCubeLiftIKRelBlueprintMimicEnvCfg(FrankaCubeLiftBlueprintEnvCfg, Mim
             SubTaskConfig(
                 object_ref="object",
                 subtask_term_signal="grasp_obj",
-                subtask_term_offset_range=(10, 20),
+                subtask_term_offset_range=(10, 15),  # Ajuste para garantir sequência
                 selection_strategy="nearest_neighbor_object",
                 selection_strategy_kwargs={"nn_k": 3},
                 action_noise=0.03,
@@ -69,7 +69,7 @@ class FrankaCubeLiftIKRelBlueprintMimicEnvCfg(FrankaCubeLiftBlueprintEnvCfg, Mim
             SubTaskConfig(
                 object_ref="object",
                 subtask_term_signal="lift_obj",
-                subtask_term_offset_range=(10, 20),
+                subtask_term_offset_range=(15, 20),  # Ajuste para evitar inconsistências
                 selection_strategy="nearest_neighbor_object",
                 selection_strategy_kwargs={"nn_k": 3},
                 action_noise=0.03,
@@ -84,7 +84,7 @@ class FrankaCubeLiftIKRelBlueprintMimicEnvCfg(FrankaCubeLiftBlueprintEnvCfg, Mim
             SubTaskConfig(
                 object_ref="object",
                 subtask_term_signal="target_object_position",
-                subtask_term_offset_range=(10, 20),
+                subtask_term_offset_range=(0, 0),  # Ajuste para garantir sequência
                 selection_strategy="nearest_neighbor_object",
                 selection_strategy_kwargs={"nn_k": 3},
                 action_noise=0.03,

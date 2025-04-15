@@ -122,10 +122,11 @@ class ObservationsCfg:
     class PolicyCfg(ObsGroup):
         """Observations para o grupo de políticas."""
 
+        actions = ObsTerm(func=mdp.last_action)        
+
         # Adicionar novas observações
         joint_pos = ObsTerm(func=mdp.joint_pos_rel)
         joint_vel = ObsTerm(func=mdp.joint_vel_rel)
-        # actions = ObsTerm(func=mdp.last_action)
         
         # Observações relacionadas ao objeto
         object_position = ObsTerm(func=mdp.object_position_in_robot_root_frame)

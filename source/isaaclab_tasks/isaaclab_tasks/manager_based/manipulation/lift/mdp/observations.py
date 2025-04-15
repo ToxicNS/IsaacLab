@@ -22,42 +22,6 @@ if TYPE_CHECKING:
 # Robot State Observations
 # ==========================
 
-# def joint_pos_rel(env: ManagerBasedRLEnv, robot_cfg: SceneEntityCfg = SceneEntityCfg("robot")) -> torch.Tensor:
-#     """Retorna as posições relativas das juntas do robô."""
-#     robot: Articulation = env.scene[robot_cfg.name]
-    
-#     # Pegamos todas as juntas exceto as duas do gripper (que são as últimas)
-#     joint_pos = robot.data.joint_pos[:, :-2]
-    
-#     # Normaliza usando os limites das juntas
-#     joint_min = robot.data.joint_pos_limits[:, :-2, 0]  # Atualizado
-#     joint_max = robot.data.joint_pos_limits[:, :-2, 1]  # Atualizado
-#     joint_range = joint_max - joint_min
-    
-#     # Evita divisão por zero (juntas que não têm range)
-#     joint_range = torch.where(joint_range == 0, torch.ones_like(joint_range), joint_range)
-    
-#     # Normalização para o intervalo [-1, 1]
-#     joint_pos_normalized = 2.0 * (joint_pos - joint_min) / joint_range - 1.0
-    
-#     return joint_pos_normalized
-
-
-# def joint_vel_rel(env: ManagerBasedRLEnv, robot_cfg: SceneEntityCfg = SceneEntityCfg("robot")) -> torch.Tensor:
-#     """Retorna as velocidades relativas das juntas do robô."""
-#     robot: Articulation = env.scene[robot_cfg.name]
-    
-#     # Pegamos todas as juntas exceto as duas do gripper (que são as últimas)
-#     joint_vel = robot.data.joint_vel[:, :-2]
-    
-#     # Assumindo que as velocidades estão no intervalo [-max_speed, max_speed]
-#     max_speed = 5.0  # valor típico, ajuste conforme necessário
-    
-#     # Normalização para o intervalo [-1, 1]
-#     joint_vel_normalized = torch.clamp(joint_vel / max_speed, -1.0, 1.0)
-    
-#     return joint_vel_normalized
-
 def joint_pos_rel(env: ManagerBasedRLEnv) -> torch.Tensor:
     """Retorna as posições relativas das juntas do robô."""
     robot: Articulation = env.scene["robot"]
@@ -68,6 +32,10 @@ def joint_vel_rel(env: ManagerBasedRLEnv) -> torch.Tensor:
     """Retorna as velocidades relativas das juntas do robô."""
     robot: Articulation = env.scene["robot"]
     return robot.data.joint_vel
+
+# def last_action(env):
+#     """ Retorna a última ação executada pelo agente. """
+#     return env.last_action
 
 # ==========================
 # Command Observations
