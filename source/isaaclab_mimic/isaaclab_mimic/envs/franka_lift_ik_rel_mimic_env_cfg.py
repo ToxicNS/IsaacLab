@@ -9,15 +9,6 @@ from isaaclab.utils import configclass
 
 from isaaclab_tasks.manager_based.manipulation.lift.config.franka.lift_ik_rel_env_cfg import FrankaCubeLiftEnvCfg
 
-# from isaaclab_tasks.manager_based.manipulation.lift.lift_env_cfg import LiftEnvCfg as FrankaCubeLiftEnvCfg
-# from isaaclab.envs.mdp.actions.actions_cfg import DifferentialInverseKinematicsActionCfg
-# from isaaclab.controllers.differential_ik_cfg import DifferentialIKControllerCfg
-# from isaaclab.assets import RigidObjectCfg
-# from isaaclab.utils.assets import ISAAC_NUCLEUS_DIR
-# from isaaclab_assets.robots.franka import FRANKA_PANDA_HIGH_PD_CFG
-# from isaaclab.sim.spawners.from_files.from_files_cfg import UsdFileCfg
-# from isaaclab.sim.schemas.schemas_cfg import RigidBodyPropertiesCfg
-
 
 @configclass
 class FrankaCubeLiftIKRelMimicEnvCfg(FrankaCubeLiftEnvCfg, MimicEnvCfg):
@@ -43,11 +34,11 @@ class FrankaCubeLiftIKRelMimicEnvCfg(FrankaCubeLiftEnvCfg, MimicEnvCfg):
         # Subtask configurations
         subtask_configs = []
 
-        # Reaching object
+        # Aproximação do objeto
         subtask_configs.append(
             SubTaskConfig(
                 object_ref="object",
-                subtask_term_signal="approach_obj",
+                subtask_term_signal="approach_obj",  # Sinal de término atualizado
                 subtask_term_offset_range=(10, 20),
                 selection_strategy="nearest_neighbor_object",
                 selection_strategy_kwargs={"nn_k": 3},
@@ -58,11 +49,11 @@ class FrankaCubeLiftIKRelMimicEnvCfg(FrankaCubeLiftEnvCfg, MimicEnvCfg):
             )
         )
 
-        # Grasping and lifting 5 cm
+        # Agarrar o objeto
         subtask_configs.append(
             SubTaskConfig(
                 object_ref="object",
-                subtask_term_signal="grasp_obj",
+                subtask_term_signal="grasp_obj",  # Sinal de término atualizado
                 subtask_term_offset_range=(10, 20),
                 selection_strategy="nearest_neighbor_object",
                 selection_strategy_kwargs={"nn_k": 3},
@@ -73,11 +64,11 @@ class FrankaCubeLiftIKRelMimicEnvCfg(FrankaCubeLiftEnvCfg, MimicEnvCfg):
             )
         )
 
-        # Lifting object
+        # Levantar o objeto
         subtask_configs.append(
             SubTaskConfig(
                 object_ref="object",
-                subtask_term_signal="lift_obj",
+                subtask_term_signal="lift_obj",  # Sinal de término atualizado
                 subtask_term_offset_range=(10, 20),
                 selection_strategy="nearest_neighbor_object",
                 selection_strategy_kwargs={"nn_k": 3},
@@ -87,11 +78,12 @@ class FrankaCubeLiftIKRelMimicEnvCfg(FrankaCubeLiftEnvCfg, MimicEnvCfg):
                 apply_noise_during_interpolation=False,
             )
         )
-        # Lifting to target object position
+
+        # Levar o objeto para a posição alvo
         subtask_configs.append(
             SubTaskConfig(
                 object_ref="object",
-                subtask_term_signal="target_object_position",  # Alterado de "lift_obj" para "target_object_position"
+                subtask_term_signal="target_object_position",  # Sinal de término atualizado
                 subtask_term_offset_range=(10, 20),
                 selection_strategy="nearest_neighbor_object",
                 selection_strategy_kwargs={"nn_k": 3},
