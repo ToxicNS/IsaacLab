@@ -33,6 +33,8 @@ class FrankaCubeLiftIKRelBlueprintMimicEnvCfg(FrankaCubeLiftBlueprintEnvCfg, Mim
 
         # The following are the subtask configurations for the lift task.
         subtask_configs = []
+
+        # Aproximação do objeto
         subtask_configs.append(
             SubTaskConfig(
                 object_ref="object",
@@ -47,7 +49,7 @@ class FrankaCubeLiftIKRelBlueprintMimicEnvCfg(FrankaCubeLiftBlueprintEnvCfg, Mim
             )
         )
 
-        # Subtarefa: Agarrar o objeto
+        # Agarrar o objeto
         subtask_configs.append(
             SubTaskConfig(
                 object_ref="object",
@@ -62,7 +64,7 @@ class FrankaCubeLiftIKRelBlueprintMimicEnvCfg(FrankaCubeLiftBlueprintEnvCfg, Mim
             )
         )
 
-        # Subtarefa: Levantar o objeto
+        # Levantar o objeto
         subtask_configs.append(
             SubTaskConfig(
                 object_ref="object",
@@ -77,11 +79,11 @@ class FrankaCubeLiftIKRelBlueprintMimicEnvCfg(FrankaCubeLiftBlueprintEnvCfg, Mim
             )
         )
 
-        # Subtarefa: Levar o objeto para a posição alvo
+        # Levar o objeto para a posição alvo
         subtask_configs.append(
             SubTaskConfig(
                 object_ref="object",
-                subtask_term_signal="target_object_position",  # Alterado de "lift_obj" para "target_object_position"
+                subtask_term_signal="target_object_position",
                 subtask_term_offset_range=(10, 20),
                 selection_strategy="nearest_neighbor_object",
                 selection_strategy_kwargs={"nn_k": 3},
@@ -91,6 +93,5 @@ class FrankaCubeLiftIKRelBlueprintMimicEnvCfg(FrankaCubeLiftBlueprintEnvCfg, Mim
                 apply_noise_during_interpolation=False,
             )
         )
-
 
         self.subtask_configs["franka"] = subtask_configs
