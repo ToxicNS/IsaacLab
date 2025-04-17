@@ -29,7 +29,7 @@ class FrankaCubeLiftIKRelMimicEnvCfg(FrankaCubeLiftEnvCfg, MimicEnvCfg):
         self.datagen_config.generation_transform_first_robot_pose = False
         self.datagen_config.generation_interpolate_from_last_target_pose = True
         self.datagen_config.max_num_failures = 25
-        self.datagen_config.seed = 1
+        self.datagen_config.seed = 42
 
         # Subtask configurations
         subtask_configs = []
@@ -84,7 +84,7 @@ class FrankaCubeLiftIKRelMimicEnvCfg(FrankaCubeLiftEnvCfg, MimicEnvCfg):
             SubTaskConfig(
                 object_ref="object",
                 subtask_term_signal="target_object_position",
-                subtask_term_offset_range=(0,0),  # Ajuste para garantir sequência
+                subtask_term_offset_range=(0, 0),  # Ajuste para garantir sequência
                 selection_strategy="nearest_neighbor_object",
                 selection_strategy_kwargs={"nn_k": 3},
                 action_noise=0.03,

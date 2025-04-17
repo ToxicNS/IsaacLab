@@ -290,3 +290,15 @@ class FrankaCubeLiftBlueprintEnvCfg(lift_joint_pos_env_cfg.FrankaCubeLiftEnvCfg)
             ),
             offset=CameraCfg.OffsetCfg(pos=(1.4, 1.8, 1.2), rot=(-0.1393, 0.2025, 0.8185, -0.5192), convention="ros"),
         )
+
+
+@configclass
+class FrankaCubeLiftBlueprintEnvCfg_PLAY(FrankaCubeLiftBlueprintEnvCfg):
+    def __post_init__(self):
+        # post init of parent
+        super().__post_init__()
+        # make a smaller scene for play
+        self.scene.num_envs = 50
+        self.scene.env_spacing = 2.5
+        # disable randomization for play
+        self.observations.policy.enable_corruption = False

@@ -76,7 +76,7 @@ class EventCfg:
         func=franka_lift_events.randomize_object_pose,
         mode="reset",
         params={
-            "pose_range": {"x": (0.5, 0.5), "y": (0.20, 0.20), "z": (0.0203, 0.0203), "yaw": (-1.0, 1, 0)},
+            "pose_range": {"x": (0.5, 0.5), "y": (0.20, 0.20), "z": (0.0203, 0.0203), "yaw": (0, 0, 0)},
             "min_separation": 0.1,
             "asset_cfgs": [SceneEntityCfg("object")],
         },
@@ -168,13 +168,13 @@ class FrankaCubeLiftEnvCfg(LiftEnvCfg):
             ],
         )
 
-# @configclass
-# class FrankaCubeLiftEnvCfg_PLAY(FrankaCubeLiftEnvCfg):
-#     def __post_init__(self):
-#         # post init of parent
-#         super().__post_init__()
-#         # make a smaller scene for play
-#         self.scene.num_envs = 50
-#         self.scene.env_spacing = 2.5
-#         # disable randomization for play
-#         self.observations.policy.enable_corruption = False
+@configclass
+class FrankaCubeLiftEnvCfg_PLAY(FrankaCubeLiftEnvCfg):
+    def __post_init__(self):
+        # post init of parent
+        super().__post_init__()
+        # make a smaller scene for play
+        self.scene.num_envs = 50
+        self.scene.env_spacing = 2.5
+        # disable randomization for play
+        self.observations.policy.enable_corruption = False

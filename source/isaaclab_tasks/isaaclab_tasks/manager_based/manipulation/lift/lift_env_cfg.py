@@ -277,7 +277,7 @@ class EventCfg:
         func=franka_lift_events.randomize_object_pose,
         mode="reset",
         params={
-            "pose_range": {"x": (0.5, 0.5), "y": (0.20, 0.20), "z": (0.0203, 0.0203), "yaw": (-1.0, 1, 0)},
+            "pose_range": {"x": (0.5, 0.5), "y": (0.20, 0.20), "z": (0.0203, 0.0203), "yaw": (0, 0, 0)},
             "min_separation": 0.1,
             "asset_cfgs": [SceneEntityCfg("object")],
         },
@@ -377,8 +377,10 @@ class LiftEnvCfg(ManagerBasedRLEnvCfg):
     def __post_init__(self):
         """Post initialization."""
         # general settings
-        self.decimation = 2
+        self.decimation = 2 
         self.episode_length_s = 30.0
+        # Adicionar seed para o ambiente base
+        self.seed = 42  # Adicione esta linha        
         # simulation settings
         self.sim.dt = 0.01  # 100Hz
         self.sim.render_interval = self.decimation

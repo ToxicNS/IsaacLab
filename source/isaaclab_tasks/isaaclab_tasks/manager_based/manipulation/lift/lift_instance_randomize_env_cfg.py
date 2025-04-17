@@ -208,6 +208,8 @@ class LiftInstanceRandomizeEnvCfg(ManagerBasedRLEnvCfg):
         # general settings
         self.decimation = 5
         self.episode_length_s = 30.0  # Tarefa de lift é mais simples, menor duração
+        # Adicionar seed para o ambiente base
+        self.seed = 42  # Adicione esta linha             
         # simulation settings
         self.sim.dt = 0.01  # 100Hz
         self.sim.render_interval = self.decimation
