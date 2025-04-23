@@ -75,3 +75,37 @@ def object_goal_distance(
     distance = torch.norm(des_pos_w - object.data.root_pos_w[:, :3], dim=1)
     # rewarded if the object is lifted above the threshold
     return (object.data.root_pos_w[:, 2] > minimal_height) * (1 - torch.tanh(distance / std))
+
+def object_goal_distance_sparse(
+    env: ManagerBasedRLEnv,
+    threshold: float,
+    command_name: str,
+    object_cfg: SceneEntityCfg = SceneEntityCfg("object"),
+    robot_cfg: SceneEntityCfg = SceneEntityCfg("robot"),
+) -> torch.Tensor:
+    """Recompensa esparsa quando o objeto alcança o objetivo.
+    
+    Args:
+        env: O ambiente.
+        threshold: A distância mínima para considerar o objeto como tendo alcançado o objetivo.
+        command_name: O nome do comando que define a posição alvo.
+        object_cfg: A configuração do objeto a ser manipulado. Defaults to SceneEntityCfg("object").
+        robot_cfg: A configuração do robô. Defaults to SceneEntityCfg("robot").
+        
+    Returns:
+        torch.Tensor: 1.0 se o objeto alcançou o objetivo, 0.0 caso contrário.
+    """
+    # Extrair as quantidades usadas
+    robot: RigidObject = env.scene[robot_cfg.name]
+    object: RigidObject = env.scene[object_cfg.name]
+    command = env.command_manager.get_command(command_name)
+    
+    # Calcular a posição desejada no frame do mundo
+    des_pos_b = command[:, :3]
+    des_pos_w, _ = combine_frame_transforms(robot.data.root_state_w[:, :3], robot.data.root_state_w[:, 3:7], des_pos_b)
+    
+    # Distância do objeto à posição alvo
+    distance = torch.norm(des_pos_w - object.data.root_pos_w[:, :3], dim=1)
+    
+    # Retorna 1.0 se a distância for menor que o threshold, 0.0 caso contrário
+    return torch.where(distance < threshold, 1.0, 0.0)

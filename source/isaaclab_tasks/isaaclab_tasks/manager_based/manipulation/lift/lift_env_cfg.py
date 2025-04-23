@@ -70,21 +70,6 @@ class ObjectTableSceneCfg(InteractiveSceneCfg):
     #     spawn=UsdFileCfg(usd_path="file:///home/lab4/IsaacLab/source/isaaclab_tasks/isaaclab_tasks/manager_based/manipulation/objets/rsd455.usd"),
     # )
 
-    # goal pose
-    # goal = AssetBaseCfg(
-    #     prim_path="{ENV_REGEX_NS}/Goal",
-    #     init_state=AssetBaseCfg.InitialStateCfg(
-    #         # A mesma posição que está no comando
-    #         pos=[0.5, -0.25, 0.1], 
-    #         rot=[1, 0, 0, 0]
-    #     ),
-    #     spawn=UsdFileCfg(
-    #         usd_path=f"{ISAAC_NUCLEUS_DIR}/Props/Markers/sphere_marker.usd",
-    #         scale=(0.05, 0.05, 0.05),
-    #         semantic_tags=[("class", "goal")],
-    #     ),
-    # )
-
 
 ##
 # MDP settings
@@ -289,28 +274,47 @@ class EventCfg:
 class RewardsCfg:
     """Reward terms for the MDP."""
 
-    object_reached_goal = RewTerm(func=mdp.object_ee_distance, params={"std": 0.1}, weight=1.0)
+    # object_reached_goal = RewTerm(func=mdp.object_ee_distance, params={"std": 0.1}, weight=1.0)
 
-    lifting_object = RewTerm(func=mdp.object_is_lifted, params={"minimal_height": 0.04}, weight=15.0)
+    object_reached_goal = RewTerm(
+        func=mdp.object_goal_distance_sparse,
+        params={
+            "threshold": 0.05, 
+            "command_name": "object_pose",
+            "object_cfg": SceneEntityCfg("object")
+        }, 
+        weight=5.0  # Aumentado para maior impacto
+    )
+
+    lifting_object = RewTerm(
+        func=mdp.object_is_lifted,
+        params={"minimal_height": 0.02},  # Reduzido para facilitar o aprendizado inicial
+        weight=20.0  # Aumentado para maior impacto
+    )
 
     object_goal_tracking = RewTerm(
         func=mdp.object_goal_distance,
-        params={"std": 0.3, "minimal_height": 0.04, "command_name": "object_pose"},
-        weight=16.0,
+        params={"std": 0.1, "minimal_height": 0.02, "command_name": "object_pose"},
+        weight=20.0  # Aumentado para maior impacto
     )
 
     object_goal_tracking_fine_grained = RewTerm(
         func=mdp.object_goal_distance,
-        params={"std": 0.05, "minimal_height": 0.04, "command_name": "object_pose"},
-        weight=5.0,
+        params={"std": 0.05, "minimal_height": 0.02, "command_name": "object_pose"},
+        weight=10.0  # Aumentado para maior impacto
     )
 
-    # action penalty
-    action_rate = RewTerm(func=mdp.action_rate_l2, weight=-1e-4)
+    approach_object = RewTerm(
+        func=mdp.object_ee_distance,
+        params={"std": 0.1, "object_cfg": SceneEntityCfg("object")},
+        weight=10.0  # Nova recompensa para incentivar aproximação inicial
+    )
+
+    action_rate = RewTerm(func=mdp.action_rate_l2, weight=-1e-2)  # Penalidade ajustada
 
     joint_vel = RewTerm(
         func=mdp.joint_vel_l2,
-        weight=-1e-4,
+        weight=-1e-2,  # Penalidade ajustada
         params={"asset_cfg": SceneEntityCfg("robot")},
     )
 
@@ -328,16 +332,17 @@ class TerminationsCfg:
         params={"minimum_height": -0.05, "asset_cfg": SceneEntityCfg("object")}
     )
 
-    # success = DoneTerm(
-    #     func=mdp.object_reached_goal,
-    #     params={
-    #         "command_name": "object_pose",
-    #         "threshold": 0.05,
-    #         "object_cfg": SceneEntityCfg("object"),
-    #     },
-    # )
+    success = DoneTerm(
+        func=mdp.object_reached_goal,
+        params={
+            "command_name": "object_pose",
+            "threshold": 0.05,
+            "robot_cfg": SceneEntityCfg("robot"),
+            "object_cfg": SceneEntityCfg("object"),
+        },
+    )
 
-    success = DoneTerm(func=mdp.object_reached_goal)    
+    # success = DoneTerm(func=mdp.object_reached_goal)    
 
 @configclass
 class CurriculumCfg:
@@ -380,7 +385,7 @@ class LiftEnvCfg(ManagerBasedRLEnvCfg):
         self.decimation = 2 
         self.episode_length_s = 30.0
         # Adicionar seed para o ambiente base
-        self.seed = 42  # Adicione esta linha        
+        self.seed = 1  # Adicione esta linha        
         # simulation settings
         self.sim.dt = 0.01  # 100Hz
         self.sim.render_interval = self.decimation

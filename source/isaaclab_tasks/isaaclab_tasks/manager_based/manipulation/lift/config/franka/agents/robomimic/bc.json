@@ -1,7 +1,7 @@
 {
     "algo_name": "bc",
     "experiment": {
-        "name": "bc",
+        "name": "bc_improved",
         "validate": true,
         "logging": {
             "terminal_output_to_txt": true,
@@ -50,8 +50,8 @@
         ],
         "goal_mode": null,
         "cuda": true,
-        "batch_size": 100,
-        "num_epochs": 200,
+        "batch_size": 256,
+        "num_epochs": 300,
         "seed": 1
     },
     "algo": {
@@ -74,7 +74,8 @@
         },
         "actor_layer_dims": [
             1024,
-            1024
+            1024,
+            512
         ],
         "gaussian": {
             "enabled": false,
@@ -127,7 +128,7 @@
             ]
         },
         "rnn": {
-            "enabled": false,
+            "enabled": true,
             "horizon": 10,
             "hidden_dim": 400,
             "rnn_type": "LSTM",
@@ -145,7 +146,16 @@
                     "joint_pos",
                     "joint_vel",
                     "object_position",
-                    "target_object_position"
+                    "target_object_position",
+                    "object_positions",
+                    "object_orientations",
+                    "instance_randomized_object_positions",
+                    "instance_randomized_object_orientations",
+                    "eef_pos",
+                    "eef_quat",
+                    "gripper_pos",
+                    "object_obs",
+                    "instance_randomized_object_obs"
                 ],
                 "rgb": [],
                 "depth": [],
