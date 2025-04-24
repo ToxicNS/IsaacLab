@@ -261,4 +261,3 @@ def object_stacked(
     return torch.logical_and(xy_dist < xy_threshold, height_dist < height_threshold)
 
 
-

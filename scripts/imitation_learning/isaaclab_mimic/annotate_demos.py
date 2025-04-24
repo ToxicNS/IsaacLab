@@ -61,7 +61,6 @@ from isaaclab.managers import RecorderTerm, RecorderTermCfg
 from isaaclab.utils import configclass
 from isaaclab.utils.datasets import HDF5DatasetFileHandler
 
-
 import isaaclab_tasks  # noqa: F401
 from isaaclab_tasks.utils.parse_cfg import parse_env_cfg
 

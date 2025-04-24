@@ -44,7 +44,7 @@ class ManagerBasedRLMimicEnv(ManagerBasedRLEnv):
         Returns:
             A torch.Tensor eef pose matrix. Shape is (len(env_ids), 4, 4)
         """
-        #raise NotImplementedError
+        raise NotImplementedError
 
     def target_eef_pose_to_action(
         self, target_eef_pose_dict: dict, gripper_action_dict: dict, noise: float | None = None, env_id: int = 0
