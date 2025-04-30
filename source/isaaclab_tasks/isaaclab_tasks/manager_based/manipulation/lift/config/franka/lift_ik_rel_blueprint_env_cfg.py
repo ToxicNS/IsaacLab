@@ -176,7 +176,7 @@ class ObservationsCfg:
 
         # Verifica se o end-effector está próximo do objeto
         approach_obj = ObsTerm(
-            func=mdp.object_reached_goal,
+            func=mdp.object_approached,
             params={
                 "command_name": "object_pose",  
                 "threshold": 0.05,  
@@ -185,35 +185,37 @@ class ObservationsCfg:
             },
         )
 
-        # Verifica se o objeto foi agarrado
+        # Subtarefa de agarrar
         grasp_obj = ObsTerm(
             func=mdp.object_grasped,
             params={
                 "ee_frame_cfg": SceneEntityCfg("ee_frame"),
                 "object_cfg": SceneEntityCfg("object"),
-                "grasp_distance": 0.02,
+                "grasp_distance": 0.05,  # Distância máxima para considerar o objeto agarrado
+                "lift_threshold": 0.005,  # Altura mínima para término da subtarefa (0.5 cm)
             },
         )
 
-        # Verifica se o objeto foi levantado acima de uma altura mínima
+        # Subtarefa de levantamento
         lift_obj = ObsTerm(
-            func=mdp.object_is_lifted,
+            func=mdp.object_lifted,
             params={
-                "minimal_height": 0.05,
                 "object_cfg": SceneEntityCfg("object"),
+                "lift_start": 0.005,  # Altura mínima para início da subtarefa (0.5 cm)
+                "lift_end": 0.10,  # Altura máxima para término da subtarefa (10 cm)
             },
         )
 
-        # Substituir stacked_obj por target_object_position
-        target_object_position = ObsTerm(
-            func=mdp.object_reached_goal,
-            params={
-                "command_name": "object_pose",
-                "threshold": 0.05, 
-                "robot_cfg": SceneEntityCfg("robot"),
-                "object_cfg": SceneEntityCfg("object"),
-            },
-        )
+        # # Substituir stacked_obj por target_object_position
+        # target_object_position = ObsTerm(
+        #     func=mdp.object_reached_goal,
+        #     params={
+        #         "command_name": "object_pose",
+        #         "threshold": 0.05, 
+        #         "robot_cfg": SceneEntityCfg("robot"),
+        #         "object_cfg": SceneEntityCfg("object"),
+        #     },
+        # )
 
         def __post_init__(self):
             self.enable_corruption = False

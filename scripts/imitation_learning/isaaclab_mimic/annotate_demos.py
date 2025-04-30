@@ -248,8 +248,8 @@ def main():
                     print(f"\tSubtasks marked at action indices: {subtask_indices}")
                     if len(args_cli.signals) != len(subtask_indices):
                         raise ValueError(
-                            f"Number of annotated subtask signals {len(subtask_indices)} should be equal               "
-                            f"                          to number of subtasks {len(args_cli.signals)}"
+                            f"Number of annotated subtask signals {len(subtask_indices)} should be equal "
+                            f"to number of subtasks {len(args_cli.signals)}"
                         )
                     annotated_episode = env.unwrapped.recorder_manager.get_episode(0)
                     for subtask_index in range(len(args_cli.signals)):
@@ -260,10 +260,67 @@ def main():
                             f"obs/datagen_info/subtask_term_signals/{args_cli.signals[subtask_index]}", subtask_signals
                         )
                     is_episode_annotated_successfully = True
+                    
+                    # Mostrar informações detalhadas das subtarefas para o modo manual
+                    print(f"\tComprimento total do demo: {len(actions)} frames")
+                    print("\tInformações das subtarefas:")
+                    for i, signal_name in enumerate(args_cli.signals):
+                        inicio = subtask_indices[i]
+                        
+                        # Determinar o fim desta subtarefa
+                        if i < len(subtask_indices) - 1:
+                            fim = subtask_indices[i + 1] - 1
+                        else:
+                            fim = len(actions) - 1
+                            
+                        duracao = fim - inicio + 1
+                        
+                        print(f"\t - Subtarefa '{signal_name}': Inicia em frame {inicio}, termina em frame {fim}, "
+                            f"duração de {duracao}/{len(actions)} frames "
+                            f"({(duracao/len(actions)*100):.1f}%)")
                 else:
                     # check if all the subtask term signals are annotated
                     annotated_episode = env.unwrapped.recorder_manager.get_episode(0)
                     subtask_term_signal_dict = annotated_episode.data["obs"]["datagen_info"]["subtask_term_signals"]
+                    
+                    # Mostrar informações detalhadas das subtarefas para o modo automático
+                    print(f"\tComprimento total do demo: {len(actions)} frames")
+                    print("\tInformações das subtarefas:")
+                    
+                    # Para cada subtarefa, mostrar quando começa a ser concluída e seu comprimento
+                    for signal_name, signal_flags in subtask_term_signal_dict.items():
+                        # Converter para CPU para manipulação mais fácil
+                        signal_np = signal_flags.cpu().numpy()
+                        
+                        # Encontrar onde o sinal muda de False para True (subtarefa concluída)
+                        if not signal_np.any():
+                            print(f"\t - Subtarefa '{signal_name}': Nunca concluída")
+                        else:
+                            # Índice da primeira ocorrência de True (subtarefa concluída)
+                            primeiro_true = signal_np.argmax()
+                            
+                            # Tentar encontrar onde termina (se mudar de True para False novamente)
+                            # Verificar se há mudança de True para False após o primeiro True
+                            if primeiro_true < len(signal_np) - 1:
+                                # Verificar na parte do array após o primeiro True
+                                pos_primeiro = signal_np[primeiro_true:]
+                                # Encontrar quando volta para False (1→0)
+                                mudanca_para_false = (~pos_primeiro).argmax() if not pos_primeiro.all() else len(pos_primeiro)
+                                ultimo_true = primeiro_true + mudanca_para_false - 1
+                            else:
+                                ultimo_true = primeiro_true
+                                
+                            # Se o sinal permanecer True até o final
+                            if ultimo_true <= primeiro_true:
+                                ultimo_true = len(signal_np) - 1
+                                
+                            duracao = signal_np.sum()
+                            
+                            print(f"\t - Subtarefa '{signal_name}': Inicia: {primeiro_true}, Termina: {ultimo_true}, "
+                                f"Duração {duracao}/{len(signal_np)} frames "
+                                f"({(duracao/len(signal_np)*100):.1f}%)")
+                    
+                    # Continuar verificando se todas as subtarefas foram completadas
                     is_episode_annotated_successfully = True
                     for signal_name, signal_flags in subtask_term_signal_dict.items():
                         if not torch.any(signal_flags):

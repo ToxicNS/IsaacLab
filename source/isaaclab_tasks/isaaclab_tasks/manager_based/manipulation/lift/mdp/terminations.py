@@ -47,25 +47,30 @@ def object_reached_goal(
     robot_cfg: SceneEntityCfg = SceneEntityCfg("robot"),
     object_cfg: SceneEntityCfg = SceneEntityCfg("object"),
 ) -> torch.Tensor:
-    """Termination condition for the object reaching the goal position.
+    """Verifica se o objeto chegou à posição final (goal position).
 
     Args:
-        env: The environment.
-        command_name: The name of the command that is used to control the object.
-        threshold: The threshold for the object to reach the goal position. Defaults to 0.02.
-        robot_cfg: The robot configuration. Defaults to SceneEntityCfg("robot").
-        object_cfg: The object configuration. Defaults to SceneEntityCfg("object").
+        env: O ambiente.
+        command_name: O nome do comando que define a posição alvo.
+        threshold: A distância máxima para considerar que o objeto atingiu a meta. Padrão é 0.05.
+        robot_cfg: A configuração do robô. Padrão é SceneEntityCfg("robot").
+        object_cfg: A configuração do objeto. Padrão é SceneEntityCfg("object").
 
+    Returns:
+        Tensor booleano indicando se o objeto atingiu a posição alvo.
     """
-    # extract the used quantities (to enable type-hinting)
+    # Obter os objetos necessários
     robot: RigidObject = env.scene[robot_cfg.name]
     object: RigidObject = env.scene[object_cfg.name]
     command = env.command_manager.get_command(command_name)
-    # compute the desired position in the world frame
+    
+    # Calcular a posição alvo no frame do mundo
     des_pos_b = command[:, :3]
     des_pos_w, _ = combine_frame_transforms(robot.data.root_state_w[:, :3], robot.data.root_state_w[:, 3:7], des_pos_b)
-    # distance of the end-effector to the object: (num_envs,)
+    
+    # Calcular a distância entre a posição atual do objeto e a posição alvo
     distance = torch.norm(des_pos_w - object.data.root_pos_w[:, :3], dim=1)
-    # rewarded if the object is lifted above the threshold
+    
+    # Retorna True se a distância for menor que o threshold
     return distance < threshold
 

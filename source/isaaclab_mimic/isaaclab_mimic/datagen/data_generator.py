@@ -53,6 +53,7 @@ class DataGenerator:
         (self.eef_name,) = self.env_cfg.subtask_configs.keys()
         (self.subtask_configs,) = self.env_cfg.subtask_configs.values()
         # sanity check on task spec offset ranges - final subtask should not have any offset randomization
+        # print(f"Subtask term offset range for last subtask: {self.subtask_configs[-1].subtask_term_offset_range}")
         assert self.subtask_configs[-1].subtask_term_offset_range[0] == 0
         assert self.subtask_configs[-1].subtask_term_offset_range[1] == 0
 

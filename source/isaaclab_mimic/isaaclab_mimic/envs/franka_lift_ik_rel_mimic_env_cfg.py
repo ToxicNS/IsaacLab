@@ -2,13 +2,20 @@
 # All rights reserved.
 #
 # SPDX-License-Identifier: Apache-2.0
+import h5py
 
 from isaaclab.envs.mimic_env_cfg import MimicEnvCfg, SubTaskConfig
 from isaaclab.utils import configclass
 
 
 from isaaclab_tasks.manager_based.manipulation.lift.config.franka.lift_ik_rel_env_cfg import FrankaCubeLiftEnvCfg
-
+from isaaclab_mimic.envs.franka_lift_ik_rel_mimic_env import (
+    ajustar_subtarefas,
+    get_demo_length,  
+    validar_subtarefas,
+    calculate_dynamic_offsets,
+    validate_subtask_order,
+)
 
 @configclass
 class FrankaCubeLiftIKRelMimicEnvCfg(FrankaCubeLiftEnvCfg, MimicEnvCfg):
@@ -19,6 +26,14 @@ class FrankaCubeLiftIKRelMimicEnvCfg(FrankaCubeLiftEnvCfg, MimicEnvCfg):
     def __post_init__(self):
         # post init of parents
         super().__post_init__()
+
+        # Verificar se o dataset_path está configurado
+        if not hasattr(self.datagen_config, "dataset_path") or not self.datagen_config.dataset_path:
+            import argparse
+            parser = argparse.ArgumentParser()
+            parser.add_argument("--input_file", type=str, required=True, help="Caminho para o dataset")
+            args, _ = parser.parse_known_args()
+            self.datagen_config.dataset_path = args.input_file
 
         # Override datagen configuration
         self.datagen_config.name = "demo_src_lift_isaac_lab_task_D0"
@@ -39,7 +54,7 @@ class FrankaCubeLiftIKRelMimicEnvCfg(FrankaCubeLiftEnvCfg, MimicEnvCfg):
             SubTaskConfig(
                 object_ref="object",
                 subtask_term_signal="approach_obj",
-                subtask_term_offset_range=(5, 10),  # Ajuste para evitar sobreposição
+                subtask_term_offset_range=(10, 20),  # Ajuste para evitar inconsistências
                 selection_strategy="nearest_neighbor_object",
                 selection_strategy_kwargs={"nn_k": 3},
                 action_noise=0.03,
@@ -54,7 +69,7 @@ class FrankaCubeLiftIKRelMimicEnvCfg(FrankaCubeLiftEnvCfg, MimicEnvCfg):
             SubTaskConfig(
                 object_ref="object",
                 subtask_term_signal="grasp_obj",
-                subtask_term_offset_range=(10, 15),  # Ajuste para garantir sequência
+                subtask_term_offset_range=(10, 20),  # Ajuste para evitar inconsistências
                 selection_strategy="nearest_neighbor_object",
                 selection_strategy_kwargs={"nn_k": 3},
                 action_noise=0.03,
@@ -69,7 +84,7 @@ class FrankaCubeLiftIKRelMimicEnvCfg(FrankaCubeLiftEnvCfg, MimicEnvCfg):
             SubTaskConfig(
                 object_ref="object",
                 subtask_term_signal="lift_obj",
-                subtask_term_offset_range=(15, 20),  # Ajuste para evitar inconsistências
+                subtask_term_offset_range=(10, 20),  # Ajuste para evitar inconsistências
                 selection_strategy="nearest_neighbor_object",
                 selection_strategy_kwargs={"nn_k": 3},
                 action_noise=0.03,
@@ -83,8 +98,8 @@ class FrankaCubeLiftIKRelMimicEnvCfg(FrankaCubeLiftEnvCfg, MimicEnvCfg):
         subtask_configs.append(
             SubTaskConfig(
                 object_ref="object",
-                subtask_term_signal="target_object_position",
-                subtask_term_offset_range=(0, 0),  # Ajuste para garantir sequência
+                subtask_term_signal=None,
+                subtask_term_offset_range=(0, 0),  # Ajuste para evitar inconsistências
                 selection_strategy="nearest_neighbor_object",
                 selection_strategy_kwargs={"nn_k": 3},
                 action_noise=0.03,
@@ -94,4 +109,26 @@ class FrankaCubeLiftIKRelMimicEnvCfg(FrankaCubeLiftEnvCfg, MimicEnvCfg):
             )
         )
 
-        self.subtask_configs["franka"] = subtask_configs
+        # 3. Ajustar offsets dinamicamente, mas SOMENTE para as subtarefas não-finais
+        temp_configs = calculate_dynamic_offsets(subtask_configs, min_offset=10, max_offset=30)
+
+        # 4. Adicionar a última subtarefa sem modificar seu offset
+        self.subtask_configs["franka"] = temp_configs
+        
+        # Validar a ordem das subtarefas
+        validate_subtask_order(self.subtask_configs["franka"])
+
+        # Buscar o tamanho dos demos e ajustar as subtarefas
+        import h5py
+        with h5py.File(self.datagen_config.dataset_path, "r") as f:
+            demo_keys = [key for key in f.keys() if key.startswith("demo_")]
+            for demo_key in demo_keys:
+                demo_index = int(demo_key.split("_")[1])  # Extrair o índice do demo
+                num_frames = get_demo_length(self.datagen_config.dataset_path, demo_index)
+
+                # Ajustar subtarefas para o demo atual
+                self.subtask_configs["franka"] = ajustar_subtarefas(self.subtask_configs["franka"], num_frames)
+
+                # Validar subtarefas ajustadas
+                if not validar_subtarefas(self.subtask_configs["franka"]):
+                    raise ValueError(f"Subtarefas ajustadas são inválidas para demo {demo_index}!")

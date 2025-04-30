@@ -230,34 +230,119 @@ def object_grasped(
     env: ManagerBasedRLEnv,
     ee_frame_cfg: SceneEntityCfg = SceneEntityCfg("ee_frame"),
     object_cfg: SceneEntityCfg = SceneEntityCfg("object"),
-    grasp_distance: float = 0.02, 
+    grasp_distance: float = 0.05,  # Distância máxima para considerar o objeto agarrado
+    lift_threshold: float = 0.005,  # Altura mínima para considerar que o objeto foi levantado (0.5 cm)
 ) -> torch.Tensor:
-    """Verifica se o objeto foi agarrado pelo end-effector."""
+    """Detecta o início e término da subtarefa 'grasp_obj'.
+
+    A subtarefa começa quando o end-effector está a menos de `grasp_distance` do objeto
+    e termina quando o objeto é levantado acima de `lift_threshold`.
+
+    Args:
+        env: O ambiente.
+        ee_frame_cfg: Configuração do frame do end-effector.
+        object_cfg: Configuração do objeto.
+        grasp_distance: Distância máxima para considerar que o objeto foi agarrado.
+        lift_threshold: Altura mínima para considerar que o objeto foi levantado.
+
+    Returns:
+        True enquanto o objeto está sendo agarrado e False quando o objeto é levantado.
+    """
+    # Obter o end-effector e o objeto
     ee_frame: FrameTransformer = env.scene[ee_frame_cfg.name]
     object: RigidObject = env.scene[object_cfg.name]
 
+    # Armazenar a altura inicial do objeto no início do episódio
+    if not hasattr(env, "object_initial_height"):
+        env.object_initial_height = object.data.root_pos_w[:, 2].clone()
+
+    # Posições no espaço
     ee_pos = ee_frame.data.target_pos_w[:, 0, :]
     object_pos = object.data.root_pos_w[:, :3]
-    
+
+    # Calcular a distância entre o end-effector e o objeto
     distance = torch.norm(ee_pos - object_pos, dim=1)
-    return distance < grasp_distance
+    object_near = distance < grasp_distance
+
+    # Verificar se o objeto foi levantado acima do limite
+    object_lifted = object.data.root_pos_w[:, 2] > (env.object_initial_height + lift_threshold)
+
+    # A subtarefa termina quando o objeto é levantado
+    return torch.logical_and(object_near, torch.logical_not(object_lifted))
 
 
-def object_stacked(
+def object_approached(
+    env: ManagerBasedRLEnv,
+    robot_cfg: SceneEntityCfg = SceneEntityCfg("robot"),
+    ee_frame_cfg: SceneEntityCfg = SceneEntityCfg("ee_frame"),
+    object_cfg: SceneEntityCfg = SceneEntityCfg("object"),
+    min_velocity: float = 0.001,  # Movimento mínimo para detectar início
+    threshold: float = 0.05,  # 5 cm para término
+) -> torch.Tensor:
+    """Subtarefa 'approach_obj': Detecta quando o end-effector se aproxima do objeto.
+    
+    Esta função retorna True quando o end-effector está a menos de 5cm do objeto.
+    Representa o movimento inicial até chegar perto do objeto.
+    
+    Args:
+        env: O ambiente.
+        robot_cfg: Configuração do robô.
+        object_cfg: Configuração do objeto.
+        threshold: Distância máxima para considerar que se aproximou (5cm).
+        
+    Returns:
+        True quando o end-effector está próximo do objeto.
+    """
+    # Obter o robô, end-effector e objeto
+    robot: Articulation = env.scene[robot_cfg.name]
+    ee_frame: FrameTransformer = env.scene[ee_frame_cfg.name]
+    object: RigidObject = env.scene[object_cfg.name]
+    
+    # Verificar se o robô está em movimento (baseado na velocidade das juntas)
+    joint_vel_magnitude = torch.norm(robot.data.joint_vel, dim=1)
+    robot_moving = joint_vel_magnitude > min_velocity
+    
+    # Calcular a distância entre o end-effector e o objeto
+    ee_pos = ee_frame.data.target_pos_w[:, 0, :]
+    object_pos = object.data.root_pos_w[:, :3]
+    distance = torch.norm(ee_pos - object_pos, dim=1)
+    ee_near_object = distance < threshold
+    
+    # A subtarefa está ativa enquanto o robô está se movendo e o end-effector não está próximo
+    return torch.logical_and(robot_moving, torch.logical_not(ee_near_object))
+
+
+def object_lifted(
     env: ManagerBasedRLEnv,
     object_cfg: SceneEntityCfg = SceneEntityCfg("object"),
-    goal_cfg: SceneEntityCfg = SceneEntityCfg("goal"),
-    xy_threshold: float = 0.05,
-    height_threshold: float = 0.005,
+    lift_start: float = 0.005,  # Altura mínima para considerar que o objeto foi levantado (0.5 cm)
+    lift_end: float = 0.10,  # Altura máxima para considerar que o objeto foi levantado (10 cm)
 ) -> torch.Tensor:
-    """Verifica se o objeto foi colocado no ponto final."""
+    """Detecta o início e término da subtarefa 'lift_obj'.
+
+    A subtarefa começa quando o objeto é levantado acima de `lift_start`
+    em relação à sua altura inicial e termina quando o objeto atinge `lift_end`.
+
+    Args:
+        env: O ambiente.
+        object_cfg: Configuração do objeto.
+        lift_start: Altura mínima para considerar que o objeto foi levantado.
+        lift_end: Altura máxima para considerar que o objeto foi levantado.
+
+    Returns:
+        True enquanto o objeto está sendo levantado e False quando atinge a altura máxima.
+    """
+    # Obter o objeto
     object: RigidObject = env.scene[object_cfg.name]
-    goal: RigidObject = env.scene[goal_cfg.name]
 
-    pos_diff = object.data.root_pos_w - goal.data.root_pos_w
-    xy_dist = torch.linalg.vector_norm(pos_diff[:, :2], dim=1)
-    height_dist = torch.abs(pos_diff[:, 2])
+    # Altura inicial do objeto (armazenada no início do episódio)
+    if not hasattr(env, "object_initial_height"):
+        env.object_initial_height = object.data.root_pos_w[:, 2].clone()
 
-    return torch.logical_and(xy_dist < xy_threshold, height_dist < height_threshold)
+    # Verificar se o objeto está dentro do intervalo de levantamento
+    object_height = object.data.root_pos_w[:, 2]
+    object_lifted = object_height > (env.object_initial_height + lift_start)
+    object_not_too_high = object_height < (env.object_initial_height + lift_end)
 
-
+    # A subtarefa está ativa enquanto o objeto está dentro do intervalo
+    return torch.logical_and(object_lifted, object_not_too_high)
