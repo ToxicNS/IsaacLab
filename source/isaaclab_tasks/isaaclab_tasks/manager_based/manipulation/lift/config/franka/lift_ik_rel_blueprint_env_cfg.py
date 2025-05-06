@@ -111,8 +111,7 @@ class ObservationsCfg:
         joint_vel = ObsTerm(func=mdp.joint_vel_rel)
         object = ObsTerm(func=mdp.object_obs)
         object_position = ObsTerm(func=mdp.object_position_in_robot_root_frame)
-        object_positions = ObsTerm(func=mdp.object_positions_in_world_frame)
-        object_orientations = ObsTerm(func=mdp.object_orientations_in_world_frame)
+        object_orientations = ObsTerm(func=mdp.object_orientation_in_robot_root_frame)
         eef_pos = ObsTerm(func=mdp.ee_frame_pos)
         eef_quat = ObsTerm(func=mdp.ee_frame_quat)
         gripper_pos = ObsTerm(func=mdp.gripper_pos)
@@ -176,12 +175,11 @@ class ObservationsCfg:
 
         # Verifica se o end-effector está próximo do objeto
         approach_obj = ObsTerm(
-            func=mdp.object_approached,
+            func=mdp.object_approached,  # Nova função simplificada
             params={
-                "command_name": "object_pose",  
-                "threshold": 0.05,  
-                "robot_cfg": SceneEntityCfg("robot"),  
+                "robot_cfg": SceneEntityCfg("robot"),
                 "object_cfg": SceneEntityCfg("object"),
+                "threshold": 0.05,  # 5 cm
             },
         )
 
@@ -189,10 +187,9 @@ class ObservationsCfg:
         grasp_obj = ObsTerm(
             func=mdp.object_grasped,
             params={
+                # "robot_cfg": SceneEntityCfg("robot"),
                 "ee_frame_cfg": SceneEntityCfg("ee_frame"),
                 "object_cfg": SceneEntityCfg("object"),
-                "grasp_distance": 0.05,  # Distância máxima para considerar o objeto agarrado
-                "lift_threshold": 0.005,  # Altura mínima para término da subtarefa (0.5 cm)
             },
         )
 
@@ -206,25 +203,16 @@ class ObservationsCfg:
             },
         )
 
-        # # Substituir stacked_obj por target_object_position
-        # target_object_position = ObsTerm(
-        #     func=mdp.object_reached_goal,
-        #     params={
-        #         "command_name": "object_pose",
-        #         "threshold": 0.05, 
-        #         "robot_cfg": SceneEntityCfg("robot"),
-        #         "object_cfg": SceneEntityCfg("object"),
-        #     },
-        # )
-
         def __post_init__(self):
+            """Configurações adicionais."""
             self.enable_corruption = False
             self.concatenate_terms = False
+    
 
-    # Observation groups
+    # observation groups
     policy: PolicyCfg = PolicyCfg()
     rgb_camera: RGBCameraPolicyCfg = RGBCameraPolicyCfg()
-    subtask_terms: SubtaskCfg = SubtaskCfg()
+    subtask_terms: SubtaskCfg = SubtaskCfg() 
 
 
 # ==========================
@@ -294,13 +282,13 @@ class FrankaCubeLiftBlueprintEnvCfg(lift_joint_pos_env_cfg.FrankaCubeLiftEnvCfg)
         )
 
 
-@configclass
-class FrankaCubeLiftBlueprintEnvCfg_PLAY(FrankaCubeLiftBlueprintEnvCfg):
-    def __post_init__(self):
-        # post init of parent
-        super().__post_init__()
-        # make a smaller scene for play
-        self.scene.num_envs = 50
-        self.scene.env_spacing = 2.5
-        # disable randomization for play
-        self.observations.policy.enable_corruption = False
+# @configclass
+# class FrankaCubeLiftBlueprintEnvCfg_PLAY(FrankaCubeLiftBlueprintEnvCfg):
+#     def __post_init__(self):
+#         # post init of parent
+#         super().__post_init__()
+#         # make a smaller scene for play
+#         self.scene.num_envs = 50
+#         self.scene.env_spacing = 2.5
+#         # disable randomization for play
+#         self.observations.policy.enable_corruption = False

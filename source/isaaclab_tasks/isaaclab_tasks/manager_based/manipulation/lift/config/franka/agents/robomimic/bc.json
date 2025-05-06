@@ -143,19 +143,13 @@
         "modalities": {
             "obs": {
                 "low_dim": [
+                    "actions",
                     "joint_pos",
                     "joint_vel",
-                    "object_position",
-                    "target_object_position",
-                    "object_positions",
-                    "object_orientations",
-                    "instance_randomized_object_positions",
-                    "instance_randomized_object_orientations",
+                    "object",
                     "eef_pos",
                     "eef_quat",
-                    "gripper_pos",
-                    "object_obs",
-                    "instance_randomized_object_obs"
+                    "gripper_pos"
                 ],
                 "rgb": [],
                 "depth": [],

@@ -11,13 +11,13 @@ from isaaclab.utils import configclass
 from isaaclab_tasks.manager_based.manipulation.lift.config.franka.lift_ik_rel_blueprint_env_cfg import (
     FrankaCubeLiftBlueprintEnvCfg,
 )
-from isaaclab_mimic.envs.franka_lift_ik_rel_mimic_env import (
-    ajustar_subtarefas,
-    get_demo_length,  
-    validar_subtarefas,
-    calculate_dynamic_offsets,
-    validate_subtask_order,
-)
+# from isaaclab_mimic.envs.franka_lift_ik_rel_mimic_env import (
+#     ajustar_subtarefas,
+#     get_demo_length,  
+#     validar_subtarefas,
+#     calculate_dynamic_offsets,
+#     validate_subtask_order,
+# )
 
 @configclass
 class FrankaCubeLiftIKRelBlueprintMimicEnvCfg(FrankaCubeLiftBlueprintEnvCfg, MimicEnvCfg):
@@ -29,13 +29,13 @@ class FrankaCubeLiftIKRelBlueprintMimicEnvCfg(FrankaCubeLiftBlueprintEnvCfg, Mim
         # post init of parents
         super().__post_init__()
         
-        # Verificar se o dataset_path está configurado
-        if not hasattr(self.datagen_config, "dataset_path") or not self.datagen_config.dataset_path:
-            import argparse
-            parser = argparse.ArgumentParser()
-            parser.add_argument("--input_file", type=str, required=True, help="Caminho para o dataset")
-            args, _ = parser.parse_known_args()
-            self.datagen_config.dataset_path = args.input_file
+        # # Verificar se o dataset_path está configurado
+        # if not hasattr(self.datagen_config, "dataset_path") or not self.datagen_config.dataset_path:
+        #     import argparse
+        #     parser = argparse.ArgumentParser()
+        #     parser.add_argument("--input_file", type=str, required=True, help="Caminho para o dataset")
+        #     args, _ = parser.parse_known_args()
+        #     self.datagen_config.dataset_path = args.input_file
 
 
         # Override the existing values
@@ -51,48 +51,71 @@ class FrankaCubeLiftIKRelBlueprintMimicEnvCfg(FrankaCubeLiftBlueprintEnvCfg, Mim
 
         # The following are the subtask configurations for the lift task.
         subtask_configs = []
-
-        # Aproximação do objeto
         subtask_configs.append(
             SubTaskConfig(
+                # Each subtask involves manipulation with respect to a single object frame.                
                 object_ref="object",
+                # This key corresponds to the binary indicator in "datagen_info" that signals
+                # when this subtask is finished (e.g., on a 0 to 1 edge).                
                 subtask_term_signal="approach_obj",
-                subtask_term_offset_range=(10, 20),  
+                # Specifies time offsets for data generation when splitting a trajectory into
+                # subtask segments. Random offsets are added to the termination boundary.                
+                subtask_term_offset_range=(10, 20),
+                # Selection strategy for the source subtask segment during data generation                
                 selection_strategy="nearest_neighbor_object",
+                # Optional parameters for the selection strategy function
                 selection_strategy_kwargs={"nn_k": 3},
+                # Amount of action noise to apply during this subtask
                 action_noise=0.03,
+                # Number of interpolation steps to bridge to this subtask segment
                 num_interpolation_steps=5,
+                # Additional fixed steps for the robot to reach the necessary pose
                 num_fixed_steps=0,
+                # If True, apply action noise during the interpolation phase and execution
                 apply_noise_during_interpolation=False,
             )
         )
-
-        # Agarrar o objeto
         subtask_configs.append(
             SubTaskConfig(
+                # Each subtask involves manipulation with respect to a single object frame.
                 object_ref="object",
+                # Corresponding key for the binary indicator in "datagen_info" for completion
                 subtask_term_signal="grasp_obj",
-                subtask_term_offset_range=(10, 20),  
+                # Time offsets for data generation when splitting a trajectory
+                subtask_term_offset_range=(5, 10),  
+                # Selection strategy for source subtask segment
                 selection_strategy="nearest_neighbor_object",
+                # Optional parameters for the selection strategy function
                 selection_strategy_kwargs={"nn_k": 3},
+                # Amount of action noise to apply during this subtask
                 action_noise=0.03,
+                # Number of interpolation steps to bridge to this subtask segment
                 num_interpolation_steps=5,
+                # Additional fixed steps for the robot to reach the necessary pose
                 num_fixed_steps=0,
+                # If True, apply action noise during the interpolation phase and execution
                 apply_noise_during_interpolation=False,
             )
         )
-
-        # Levantar o objeto
         subtask_configs.append(
             SubTaskConfig(
+                # Each subtask involves manipulation with respect to a single object frame.
                 object_ref="object",
+                # Corresponding key for the binary indicator in "datagen_info" for completion
                 subtask_term_signal="lift_obj",
+                # Time offsets for data generation when splitting a trajectory
                 subtask_term_offset_range=(10, 20),  
+                # Selection strategy for source subtask segment
                 selection_strategy="nearest_neighbor_object",
+                # Optional parameters for the selection strategy function
                 selection_strategy_kwargs={"nn_k": 3},
+                # Amount of action noise to apply during this subtask
                 action_noise=0.03,
+                # Number of interpolation steps to bridge to this subtask segment
                 num_interpolation_steps=5,
+                # Additional fixed steps for the robot to reach the necessary pose
                 num_fixed_steps=0,
+                # If True, apply action noise during the interpolation phase and execution
                 apply_noise_during_interpolation=False,
             )
         )
@@ -100,38 +123,24 @@ class FrankaCubeLiftIKRelBlueprintMimicEnvCfg(FrankaCubeLiftBlueprintEnvCfg, Mim
         # Levar o objeto para a posição alvo
         subtask_configs.append(
             SubTaskConfig(
+                # Each subtask involves manipulation with respect to a single object frame.
                 object_ref="object",
+                # End of final subtask does not need to be detected
                 subtask_term_signal=None,
-                subtask_term_offset_range=(0, 0),  # Ajuste para evitar inconsistências
+                # No time offsets for the final subtask
+                subtask_term_offset_range=(0, 0),
+                # Selection strategy for source subtask segment
                 selection_strategy="nearest_neighbor_object",
+                # Optional parameters for the selection strategy function
                 selection_strategy_kwargs={"nn_k": 3},
+                # Amount of action noise to apply during this subtask
                 action_noise=0.03,
+                # Number of interpolation steps to bridge to this subtask segment
                 num_interpolation_steps=5,
+                # Additional fixed steps for the robot to reach the necessary pose
                 num_fixed_steps=0,
+                # If True, apply action noise during the interpolation phase and execution
                 apply_noise_during_interpolation=False,
             )
         )
-
-        # 3. Ajustar offsets dinamicamente, mas SOMENTE para as subtarefas não-finais
-        temp_configs = calculate_dynamic_offsets(subtask_configs, min_offset=10, max_offset=30)
-
-        # 4. Adicionar a última subtarefa sem modificar seu offset
-        self.subtask_configs["franka"] = temp_configs
-
-        # Validar a ordem das subtarefas
-        validate_subtask_order(self.subtask_configs["franka"])
-
-        # Buscar o tamanho dos demos e ajustar as subtarefas
-        import h5py
-        with h5py.File(self.datagen_config.dataset_path, "r") as f:
-            demo_keys = [key for key in f.keys() if key.startswith("demo_")]
-            for demo_key in demo_keys:
-                demo_index = int(demo_key.split("_")[1])  # Extrair o índice do demo
-                num_frames = get_demo_length(self.datagen_config.dataset_path, demo_index)
-
-                # Ajustar subtarefas para o demo atual
-                self.subtask_configs["franka"] = ajustar_subtarefas(self.subtask_configs["franka"], num_frames)
-
-                # Validar subtarefas ajustadas
-                if not validar_subtarefas(self.subtask_configs["franka"]):
-                    raise ValueError(f"Subtarefas ajustadas são inválidas para demo {demo_index}!")
+        self.subtask_configs["franka"] = subtask_configs

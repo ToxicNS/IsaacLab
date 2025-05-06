@@ -4,7 +4,7 @@
 # SPDX-License-Identifier: BSD-3-Clause
 
 from dataclasses import MISSING
-
+import torch
 import isaaclab.sim as sim_utils
 from isaaclab.assets import ArticulationCfg, AssetBaseCfg, DeformableObjectCfg, RigidObjectCfg
 from isaaclab.envs import ManagerBasedRLEnvCfg
@@ -81,7 +81,7 @@ class CommandsCfg:
 
     object_pose = mdp.UniformPoseCommandCfg(
         asset_name="robot",
-        body_name=MISSING,
+        body_name="panda_hand",
         resampling_time_range=(5.0, 5.0),
         debug_vis=True,
         ranges=mdp.UniformPoseCommandCfg.Ranges(
@@ -94,7 +94,6 @@ class ActionsCfg:
     """Action specifications for the MDP."""
 
     # will be set by agent env cfg
-    # arm_action: mdp.JointPositionActionCfg = MISSING
     arm_action: mdp.JointPositionActionCfg | mdp.DifferentialInverseKinematicsActionCfg = MISSING
     gripper_action: mdp.BinaryJointPositionActionCfg = MISSING
 
@@ -114,15 +113,10 @@ class ObservationsCfg:
         joint_vel = ObsTerm(func=mdp.joint_vel_rel)
         
         # Observações relacionadas ao objeto
-        object_position = ObsTerm(func=mdp.object_position_in_robot_root_frame)
-        # target_object_position = ObsTerm(func=mdp.generated_commands, params={"command_name": "object_pose"})
-        
-        # Observações existentes que você deseja manter
-        object_positions = ObsTerm(func=mdp.object_positions_in_world_frame)
-        object_orientations = ObsTerm(func=mdp.object_orientations_in_world_frame)
-        instance_randomized_object_positions = ObsTerm(func=mdp.instance_randomize_object_positions_in_world_frame)
-        instance_randomized_object_orientations = ObsTerm(func=mdp.instance_randomize_object_orientations_in_world_frame)
-        
+        object = ObsTerm(func=mdp.object_obs)
+        # object_position = ObsTerm(func=mdp.object_position_in_robot_root_frame)
+        # object_orientations = ObsTerm(func=mdp.object_orientation_in_robot_root_frame)
+          
         # Observações relacionadas ao end-effector
         eef_pos = ObsTerm(func=mdp.ee_frame_pos)
         eef_quat = ObsTerm(func=mdp.ee_frame_quat)
@@ -130,10 +124,6 @@ class ObservationsCfg:
         # Observações relacionadas ao gripper
         gripper_pos = ObsTerm(func=mdp.gripper_pos)
         
-        # Outras observações de objeto
-        object_obs = ObsTerm(func=mdp.object_obs)
-        instance_randomized_object_obs = ObsTerm(func=mdp.instance_randomize_object_obs)
-
         def __post_init__(self):
             """Configurações adicionais."""
             self.enable_corruption = False
@@ -142,13 +132,6 @@ class ObservationsCfg:
     @configclass
     class RGBCameraPolicyCfg(ObsGroup):
         """Observations for policy group with RGB images."""
-
-        # table_cam = ObsTerm(
-        #     func=mdp.image, params={"sensor_cfg": SceneEntityCfg("table_cam"), "data_type": "rgb", "normalize": False}
-        # )
-        # wrist_cam = ObsTerm(
-        #     func=mdp.image, params={"sensor_cfg": SceneEntityCfg("wrist_cam"), "data_type": "rgb", "normalize": False}
-        # )
 
         def __post_init__(self):
             self.enable_corruption = False
@@ -172,10 +155,13 @@ class ObservationsCfg:
         grasp_obj = ObsTerm(
             func=mdp.object_grasped,
             params={
+                # "robot_cfg": SceneEntityCfg("robot"),
+                # "ee_frame_cfg": SceneEntityCfg("ee_frame"),
+                # "object_cfg": SceneEntityCfg("object"),
                 "ee_frame_cfg": SceneEntityCfg("ee_frame"),
                 "object_cfg": SceneEntityCfg("object"),
                 "grasp_distance": 0.05,  # Distância máxima para considerar o objeto agarrado
-                "lift_threshold": 0.005,  # Altura mínima para término da subtarefa (0.5 cm)
+                "lift_threshold": 0.0025,  # Altura mínima para término da subtarefa (0.25 cm)
             },
         )
 
@@ -184,22 +170,10 @@ class ObservationsCfg:
             func=mdp.object_lifted,
             params={
                 "object_cfg": SceneEntityCfg("object"),
-                "lift_start": 0.005,  # Altura mínima para início da subtarefa (0.5 cm)
-                "lift_end": 0.10,  # Altura máxima para término da subtarefa (10 cm)
+                "lift_start": 0.0025,  # Altura mínima para início da subtarefa (0.5 cm)
+                "lift_end": 0.15,  # Altura máxima para término da subtarefa (10 cm)
             },
         )
-
-
-        # # Substituir stacked_obj por target_object_position
-        # target_object_position = ObsTerm(
-        #     func=mdp.object_reached_goal,
-        #     params={
-        #         "command_name": "object_pose",
-        #         "threshold": 0.05, 
-        #         "robot_cfg": SceneEntityCfg("robot"),
-        #         "object_cfg": SceneEntityCfg("object"),
-        #     },
-        # )
 
         def __post_init__(self):
             """Configurações adicionais."""
@@ -213,62 +187,62 @@ class ObservationsCfg:
     subtask_terms: SubtaskCfg = SubtaskCfg() 
 
 
-@configclass
-class EventCfg:
-    """Unified configuration for simulation events."""
+# @configclass
+# class EventCfg:
+#     """Unified configuration for simulation events."""
 
-    # Reset full scene
-    reset_all = EventTerm(
-        func=mdp.reset_scene_to_default,
-        mode="reset"
-    )
+#     # Reset full scene
+#     reset_all = EventTerm(
+#         func=mdp.reset_scene_to_default,
+#         mode="reset"
+#     )
 
-    # Reset object position to a fixed pose
-    reset_object_position = EventTerm(
-        func=mdp.reset_root_state_uniform,
-        mode="reset",
-        params={
-            "pose_range": {
-                "x": (0.5, 0.5),
-                "y": (0.20, 0.20),
-                "z": (0.02, 0.02),
-                "yaw": (-1.0, 1.0),
-            },
-            "velocity_range": {},
-            "asset_cfg": SceneEntityCfg("object", body_names="Object"),
-        },
-    )
+#     # Reset object position to a fixed pose
+#     reset_object_position = EventTerm(
+#         func=mdp.reset_root_state_uniform,
+#         mode="reset",
+#         params={
+#             "pose_range": {
+#                 "x": (0.5, 0.5),
+#                 "y": (0.20, 0.20),
+#                 "z": (0.02, 0.02),
+#                 "yaw": (-1.0, 1.0),
+#             },
+#             "velocity_range": {},
+#             "asset_cfg": SceneEntityCfg("object", body_names="Object"),
+#         },
+#     )
 
-    # Set default arm joint pose
-    init_franka_arm_pose = EventTerm(
-        func=franka_lift_events.set_default_joint_pose,
-        mode="startup",
-        params={
-            "default_pose": [0.0444, -0.1894, -0.1107, -2.5148, 0.0044, 2.3775, 0.6952, 0.0400, 0.0400],
-        },
-    )
+#     # Set default arm joint pose
+#     init_franka_arm_pose = EventTerm(
+#         func=franka_lift_events.set_default_joint_pose,
+#         mode="startup",
+#         params={
+#             "default_pose": [0.0444, -0.1894, -0.1107, -2.5148, 0.0044, 2.3775, 0.6952, 0.0400, 0.0400],
+#         },
+#     )
 
-    # Randomize arm joint states (Gaussian noise)
-    randomize_franka_joint_state = EventTerm(
-        func=franka_lift_events.randomize_joint_by_gaussian_offset,
-        mode="reset",
-        params={
-            "mean": 0.0,
-            "std": 0.02,
-            "asset_cfg": SceneEntityCfg("robot"),
-        },
-    )
+#     # Randomize arm joint states (Gaussian noise)
+#     randomize_franka_joint_state = EventTerm(
+#         func=franka_lift_events.randomize_joint_by_gaussian_offset,
+#         mode="reset",
+#         params={
+#             "mean": 0.0,
+#             "std": 0.02,
+#             "asset_cfg": SceneEntityCfg("robot"),
+#         },
+#     )
 
-    # Randomize object pose (only yaw changes)
-    randomize_object_pose = EventTerm(
-        func=franka_lift_events.randomize_object_pose,
-        mode="reset",
-        params={
-            "pose_range": {"x": (0.5, 0.5), "y": (0.20, 0.20), "z": (0.0203, 0.0203), "yaw": (0, 0, 0)},
-            "min_separation": 0.1,
-            "asset_cfgs": [SceneEntityCfg("object")],
-        },
-    )
+#     # Randomize object pose (only yaw changes)
+#     randomize_object_pose = EventTerm(
+#         func=franka_lift_events.randomize_object_pose,
+#         mode="reset",
+#         params={
+#             "pose_range": {"x": (0.5, 0.5), "y": (0.20, 0.20), "z": (0.0203, 0.0203), "yaw": (0, 0, 0)},
+#             "min_separation": 0.1,
+#             "asset_cfgs": [SceneEntityCfg("object")],
+#         },
+#     )
 
 
 
@@ -300,13 +274,7 @@ class RewardsCfg:
         weight=20.0  # Aumentado para maior impacto
     )
 
-    object_goal_tracking_fine_grained = RewTerm(
-        func=mdp.object_goal_distance,
-        params={"std": 0.05, "minimal_height": 0.02, "command_name": "object_pose"},
-        weight=10.0  # Aumentado para maior impacto
-    )
-
-    object_reached_goal = RewTerm(
+    object_reward_goal = RewTerm(
         func=mdp.object_ee_distance,
         params={"std": 0.1, "object_cfg": SceneEntityCfg("object")},
         weight=10.0  # Nova recompensa para incentivar aproximação inicial
@@ -337,7 +305,7 @@ class TerminationsCfg:
     # success = DoneTerm(
     #     func=mdp.object_reached_goal,
     #     params={
-    #         "command_name": "object_pose",
+    #         "goal_position": torch.tensor([0.5, 0.0, 0.1]),  # Exemplo de posição alvo
     #         "threshold": 0.05,
     #         "robot_cfg": SceneEntityCfg("robot"),
     #         "object_cfg": SceneEntityCfg("object"),
@@ -377,8 +345,9 @@ class LiftEnvCfg(ManagerBasedRLEnvCfg):
     rewards: RewardsCfg = RewardsCfg()  
     terminations: TerminationsCfg = TerminationsCfg()
     commands: CommandsCfg = CommandsCfg()  
-
-    events: EventCfg = EventCfg() 
+    # commands = None
+    events = None
+    # events: EventCfg = EventCfg() 
     curriculum: CurriculumCfg = CurriculumCfg() 
 
     def __post_init__(self):

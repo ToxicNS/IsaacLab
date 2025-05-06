@@ -135,7 +135,7 @@ class FrankaTeddyBearLiftEnvCfg(FrankaCubeLiftEnvCfg):
         # TODO: Computing the root pose of deformable object from nodal positions is expensive.
         #       We need to fix that part before enabling these terms for the training.
         self.terminations.object_dropping = None
-        self.rewards.object_reached_goal = None
+        self.rewards.object_reached_goal = None 
         self.rewards.lifting_object = None
         self.rewards.object_goal_tracking = None
         self.rewards.object_goal_tracking_fine_grained = None

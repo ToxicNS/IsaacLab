@@ -27,29 +27,7 @@ from isaaclab_assets.robots.franka import FRANKA_PANDA_CFG
 
 @configclass
 class EventCfg:
-    """Unified configuration for simulation events."""
-
-    # Reset full scene
-    reset_all = EventTerm(
-        func=mdp.reset_scene_to_default,
-        mode="reset"
-    )
-
-    # Reset object position to a fixed pose
-    reset_object_position = EventTerm(
-        func=mdp.reset_root_state_uniform,
-        mode="reset",
-        params={
-            "pose_range": {
-                "x": (0.5, 0.5),
-                "y": (0.20, 0.20),
-                "z": (0.02, 0.02),
-                "yaw": (-1.0, 1.0),
-            },
-            "velocity_range": {},
-            "asset_cfg": SceneEntityCfg("object", body_names="Object"),
-        },
-    )
+    """Configuration for events."""
 
     # Set default arm joint pose
     init_franka_arm_pose = EventTerm(
@@ -71,14 +49,14 @@ class EventCfg:
         },
     )
 
-    # Randomize object pose (only yaw changes)
-    randomize_object_pose = EventTerm(
+    # Randomize object pose 
+    randomize_objects_in_focus = EventTerm(
         func=franka_lift_events.randomize_object_pose,
         mode="reset",
         params={
-            "pose_range": {"x": (0.5, 0.5), "y": (0.20, 0.20), "z": (0.0203, 0.0203), "yaw": (0, 0, 0)},
+            "pose_range": {"x": (0.5, 0.5), "y": (0.20, 0.20), "z": (0.0203, 0.0203), "yaw": (-1.0, 1, 0)},
             "min_separation": 0.1,
-            "asset_cfgs": [SceneEntityCfg("object")],
+            "asset_cfgs": [SceneEntityCfg("object")],            
         },
     )
 
@@ -168,13 +146,13 @@ class FrankaCubeLiftEnvCfg(LiftEnvCfg):
             ],
         )
 
-@configclass
-class FrankaCubeLiftEnvCfg_PLAY(FrankaCubeLiftEnvCfg):
-    def __post_init__(self):
-        # post init of parent
-        super().__post_init__()
-        # make a smaller scene for play
-        self.scene.num_envs = 50
-        self.scene.env_spacing = 2.5
-        # disable randomization for play
-        self.observations.policy.enable_corruption = False
+# @configclass
+# class FrankaCubeLiftEnvCfg_PLAY(FrankaCubeLiftEnvCfg):
+#     def __post_init__(self):
+#         # post init of parent
+#         super().__post_init__()
+#         # make a smaller scene for play
+#         self.scene.num_envs = 50
+#         self.scene.env_spacing = 2.5
+#         # disable randomization for play
+#         self.observations.policy.enable_corruption = False

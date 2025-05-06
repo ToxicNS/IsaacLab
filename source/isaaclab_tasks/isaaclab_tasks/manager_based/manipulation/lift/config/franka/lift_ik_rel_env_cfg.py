@@ -36,15 +36,15 @@ class FrankaCubeLiftEnvCfg(lift_joint_pos_env_cfg.FrankaCubeLiftEnvCfg):
             body_offset=DifferentialInverseKinematicsActionCfg.OffsetCfg(pos=[0.0, 0.0, 0.107]),
         )
       
-        self.commands.object_pose.body_name = "panda_hand"
+        # self.commands.object_pose.body_name = "panda_hand"
 
-@configclass
-class FrankaCubeLiftEnvCfg_PLAY(FrankaCubeLiftEnvCfg):
-    def __post_init__(self):
-        # post init of parent
-        super().__post_init__()
-        # make a smaller scene for play
-        self.scene.num_envs = 50
-        self.scene.env_spacing = 2.5
-        # disable randomization for play
-        self.observations.policy.enable_corruption = False
+# @configclass
+# class FrankaCubeLiftEnvCfg_PLAY(FrankaCubeLiftEnvCfg):
+#     def __post_init__(self):
+#         # post init of parent
+#         super().__post_init__()
+#         # make a smaller scene for play
+#         self.scene.num_envs = 50
+#         self.scene.env_spacing = 2.5
+#         # disable randomization for play
+#         self.observations.policy.enable_corruption = False

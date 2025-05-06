@@ -29,31 +29,68 @@ from isaaclab.markers.config import FRAME_MARKER_CFG  # isort: skip
 from isaaclab_assets.robots.franka import FRANKA_PANDA_CFG  # isort: skip
 
 
+# @configclass
+# class EventCfg:
+#     """Unified configuration for simulation events."""
+
+#     # Reset full scene
+#     reset_all = EventTerm(
+#         func=mdp.reset_scene_to_default,
+#         mode="reset"
+#     )
+
+#     # Reset object position to a fixed pose
+#     reset_object_position = EventTerm(
+#         func=mdp.reset_root_state_uniform,
+#         mode="reset",
+#         params={
+#             "pose_range": {
+#                 "x": (0.5, 0.5),
+#                 "y": (0.20, 0.20),
+#                 "z": (0.02, 0.02),
+#                 "yaw": (-1.0, 1.0),
+#             },
+#             "velocity_range": {},
+#             "asset_cfg": SceneEntityCfg("object", body_names="Object"),
+#         },
+#     )
+
+#     # Set default arm joint pose
+#     init_franka_arm_pose = EventTerm(
+#         func=franka_lift_events.set_default_joint_pose,
+#         mode="startup",
+#         params={
+#             "default_pose": [0.0444, -0.1894, -0.1107, -2.5148, 0.0044, 2.3775, 0.6952, 0.0400, 0.0400],
+#         },
+#     )
+
+#     # Randomize arm joint states (Gaussian noise)
+#     randomize_franka_joint_state = EventTerm(
+#         func=franka_lift_events.randomize_joint_by_gaussian_offset,
+#         mode="reset",
+#         params={
+#             "mean": 0.0,
+#             "std": 0.02,
+#             "asset_cfgs": [SceneEntityCfg("object")],
+#         },
+#     )
+
+#     # Randomize object pose 
+#     randomize_objects_in_focus = EventTerm(
+#         func=franka_lift_events.randomize_rigid_objects_in_focus,
+#         mode="reset",
+#         params={
+#             "asset_cfgs": [SceneEntityCfg("object")],
+#             "out_focus_state": torch.tensor([10.0, 10.0, 10.0, 1.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0]),
+#             "pose_range": {"x": (0.5, 0.5), "y": (0.20, 0.20), "z": (0.0203, 0.0203), "yaw": (-1.0, 1, 0)},
+#             "min_separation": 0.1,
+#         },
+#     )
+
+
 @configclass
 class EventCfg:
-    """Unified configuration for simulation events."""
-
-    # Reset full scene
-    reset_all = EventTerm(
-        func=mdp.reset_scene_to_default,
-        mode="reset"
-    )
-
-    # Reset object position to a fixed pose
-    reset_object_position = EventTerm(
-        func=mdp.reset_root_state_uniform,
-        mode="reset",
-        params={
-            "pose_range": {
-                "x": (0.5, 0.5),
-                "y": (0.20, 0.20),
-                "z": (0.02, 0.02),
-                "yaw": (-1.0, 1.0),
-            },
-            "velocity_range": {},
-            "asset_cfg": SceneEntityCfg("object", body_names="Object"),
-        },
-    )
+    """Configuration for events."""
 
     # Set default arm joint pose
     init_franka_arm_pose = EventTerm(
@@ -71,19 +108,18 @@ class EventCfg:
         params={
             "mean": 0.0,
             "std": 0.02,
-            "asset_cfgs": [SceneEntityCfg("object")],
+            "asset_cfg": SceneEntityCfg("robot"),
         },
     )
 
     # Randomize object pose 
     randomize_objects_in_focus = EventTerm(
-        func=franka_lift_events.randomize_rigid_objects_in_focus,
+        func=franka_lift_events.randomize_object_pose,
         mode="reset",
         params={
-            "asset_cfgs": [SceneEntityCfg("object")],
-            "out_focus_state": torch.tensor([10.0, 10.0, 10.0, 1.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0]),
             "pose_range": {"x": (0.5, 0.5), "y": (0.20, 0.20), "z": (0.0203, 0.0203), "yaw": (-1.0, 1, 0)},
             "min_separation": 0.1,
+            "asset_cfgs": [SceneEntityCfg("object")],            
         },
     )
 
@@ -197,13 +233,13 @@ class FrankaCubeLiftInstanceRandomizeEnvCfg(LiftInstanceRandomizeEnvCfg):
         )
 
 
-@configclass
-class FrankaCubeLiftInstanceRandomizeEnvCfg_PLAY(FrankaCubeLiftInstanceRandomizeEnvCfg):
-    def __post_init__(self):
-        # post init of parent
-        super().__post_init__()
-        # make a smaller scene for play
-        self.scene.num_envs = 50
-        self.scene.env_spacing = 2.5
-        # disable randomization for play
-        self.observations.policy.enable_corruption = False
+# @configclass
+# class FrankaCubeLiftInstanceRandomizeEnvCfg_PLAY(FrankaCubeLiftInstanceRandomizeEnvCfg):
+#     def __post_init__(self):
+#         # post init of parent
+#         super().__post_init__()
+#         # make a smaller scene for play
+#         self.scene.num_envs = 50
+#         self.scene.env_spacing = 2.5
+#         # disable randomization for play
+#         self.observations.policy.enable_corruption = False

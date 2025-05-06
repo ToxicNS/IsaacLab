@@ -85,7 +85,7 @@ class CommandsCfg:
 
     object_pose = mdp.UniformPoseCommandCfg(
         asset_name="robot",
-        # body_name=MISSING,  # will be set by agent env cfg
+        body_name="panda_hand",
         resampling_time_range=(5.0, 5.0),
         debug_vis=True,
         ranges=mdp.UniformPoseCommandCfg.Ranges(
@@ -111,22 +111,17 @@ class ObservationsCfg:
     class PolicyCfg(ObsGroup):
         """Observations para o grupo de políticas."""
 
-        actions = ObsTerm(func=mdp.last_action)
+        actions = ObsTerm(func=mdp.last_action)        
 
         # Adicionar novas observações
         joint_pos = ObsTerm(func=mdp.joint_pos_rel)
         joint_vel = ObsTerm(func=mdp.joint_vel_rel)
         
         # Observações relacionadas ao objeto
-        object_position = ObsTerm(func=mdp.object_position_in_robot_root_frame)
-        target_object_position = ObsTerm(func=mdp.generated_commands, params={"command_name": "object_pose"})
-        
-        # Observações existentes que você deseja manter
-        object_positions = ObsTerm(func=mdp.object_positions_in_world_frame)
-        object_orientations = ObsTerm(func=mdp.object_orientations_in_world_frame)
-        instance_randomized_object_positions = ObsTerm(func=mdp.instance_randomize_object_positions_in_world_frame)
-        instance_randomized_object_orientations = ObsTerm(func=mdp.instance_randomize_object_orientations_in_world_frame)
-        
+        object = ObsTerm(func=mdp.instance_randomize_object_position_in_robot_root_frame)
+        object_position = ObsTerm(func=mdp.instance_randomize_object_position_in_robot_root_frame)
+        object_orientations = ObsTerm(func=mdp.instance_randomize_object_orientation_in_robot_root_frame)
+          
         # Observações relacionadas ao end-effector
         eef_pos = ObsTerm(func=mdp.ee_frame_pos)
         eef_quat = ObsTerm(func=mdp.ee_frame_quat)
@@ -134,10 +129,6 @@ class ObservationsCfg:
         # Observações relacionadas ao gripper
         gripper_pos = ObsTerm(func=mdp.gripper_pos)
         
-        # Outras observações de objeto
-        object_obs = ObsTerm(func=mdp.object_obs)
-        instance_randomized_object_obs = ObsTerm(func=mdp.instance_randomize_object_obs)
-
         def __post_init__(self):
             """Configurações adicionais."""
             self.enable_corruption = False
@@ -147,12 +138,12 @@ class ObservationsCfg:
     class RGBCameraPolicyCfg(ObsGroup):
         """Observations for policy group with RGB images."""
 
-        # table_cam = ObsTerm(
-        #     func=mdp.image, params={"sensor_cfg": SceneEntityCfg("table_cam"), "data_type": "rgb", "normalize": False}
-        # )
-        # wrist_cam = ObsTerm(
-        #     func=mdp.image, params={"sensor_cfg": SceneEntityCfg("wrist_cam"), "data_type": "rgb", "normalize": False}
-        # )
+        table_cam = ObsTerm(
+            func=mdp.image, params={"sensor_cfg": SceneEntityCfg("table_cam"), "data_type": "rgb", "normalize": False}
+        )
+        wrist_cam = ObsTerm(
+            func=mdp.image, params={"sensor_cfg": SceneEntityCfg("wrist_cam"), "data_type": "rgb", "normalize": False}
+        )
 
         def __post_init__(self):
             self.enable_corruption = False
@@ -173,15 +164,8 @@ class TerminationsCfg:
         func=mdp.root_height_below_minimum,
         params={"minimum_height": -0.05, "asset_cfg": SceneEntityCfg("object")}
     )
-    
-    success = DoneTerm(
-        func=mdp.object_reached_goal,
-        params={
-            "command_name": "object_pose",
-            "threshold": 0.05,
-            "object_cfg": SceneEntityCfg("object"),
-        },
-    )
+
+    success = DoneTerm(func=mdp.object_reached_goal)  
 
 @configclass
 class LiftInstanceRandomizeEnvCfg(ManagerBasedRLEnvCfg):
