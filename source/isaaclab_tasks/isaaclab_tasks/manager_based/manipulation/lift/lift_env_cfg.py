@@ -116,7 +116,7 @@ class ObservationsCfg:
         object = ObsTerm(func=mdp.object_obs)
         # object_position = ObsTerm(func=mdp.object_position_in_robot_root_frame)
         # object_orientations = ObsTerm(func=mdp.object_orientation_in_robot_root_frame)
-          
+        target_object_position = ObsTerm(func=mdp.generated_commands, params={"command_name": "object_pose"})    
         # Observações relacionadas ao end-effector
         eef_pos = ObsTerm(func=mdp.ee_frame_pos)
         eef_quat = ObsTerm(func=mdp.ee_frame_quat)
@@ -187,62 +187,62 @@ class ObservationsCfg:
     subtask_terms: SubtaskCfg = SubtaskCfg() 
 
 
-# @configclass
-# class EventCfg:
-#     """Unified configuration for simulation events."""
+@configclass
+class EventCfg:
+    """Unified configuration for simulation events."""
 
-#     # Reset full scene
-#     reset_all = EventTerm(
-#         func=mdp.reset_scene_to_default,
-#         mode="reset"
-#     )
+    # Reset full scene
+    reset_all = EventTerm(
+        func=mdp.reset_scene_to_default,
+        mode="reset"
+    )
 
-#     # Reset object position to a fixed pose
-#     reset_object_position = EventTerm(
-#         func=mdp.reset_root_state_uniform,
-#         mode="reset",
-#         params={
-#             "pose_range": {
-#                 "x": (0.5, 0.5),
-#                 "y": (0.20, 0.20),
-#                 "z": (0.02, 0.02),
-#                 "yaw": (-1.0, 1.0),
-#             },
-#             "velocity_range": {},
-#             "asset_cfg": SceneEntityCfg("object", body_names="Object"),
-#         },
-#     )
+    # Reset object position to a fixed pose
+    reset_object_position = EventTerm(
+        func=mdp.reset_root_state_uniform,
+        mode="reset",
+        params={
+            "pose_range": {
+                "x": (0.5, 0.5),
+                "y": (0.20, 0.20),
+                "z": (0.02, 0.02),
+                "yaw": (-1.0, 1.0),
+            },
+            "velocity_range": {},
+            "asset_cfg": SceneEntityCfg("object", body_names="Object"),
+        },
+    )
 
-#     # Set default arm joint pose
-#     init_franka_arm_pose = EventTerm(
-#         func=franka_lift_events.set_default_joint_pose,
-#         mode="startup",
-#         params={
-#             "default_pose": [0.0444, -0.1894, -0.1107, -2.5148, 0.0044, 2.3775, 0.6952, 0.0400, 0.0400],
-#         },
-#     )
+    # Set default arm joint pose
+    init_franka_arm_pose = EventTerm(
+        func=franka_lift_events.set_default_joint_pose,
+        mode="startup",
+        params={
+            "default_pose": [0.0444, -0.1894, -0.1107, -2.5148, 0.0044, 2.3775, 0.6952, 0.0400, 0.0400],
+        },
+    )
 
-#     # Randomize arm joint states (Gaussian noise)
-#     randomize_franka_joint_state = EventTerm(
-#         func=franka_lift_events.randomize_joint_by_gaussian_offset,
-#         mode="reset",
-#         params={
-#             "mean": 0.0,
-#             "std": 0.02,
-#             "asset_cfg": SceneEntityCfg("robot"),
-#         },
-#     )
+    # Randomize arm joint states (Gaussian noise)
+    randomize_franka_joint_state = EventTerm(
+        func=franka_lift_events.randomize_joint_by_gaussian_offset,
+        mode="reset",
+        params={
+            "mean": 0.0,
+            "std": 0.02,
+            "asset_cfg": SceneEntityCfg("robot"),
+        },
+    )
 
-#     # Randomize object pose (only yaw changes)
-#     randomize_object_pose = EventTerm(
-#         func=franka_lift_events.randomize_object_pose,
-#         mode="reset",
-#         params={
-#             "pose_range": {"x": (0.5, 0.5), "y": (0.20, 0.20), "z": (0.0203, 0.0203), "yaw": (0, 0, 0)},
-#             "min_separation": 0.1,
-#             "asset_cfgs": [SceneEntityCfg("object")],
-#         },
-#     )
+    # Randomize object pose (only yaw changes)
+    randomize_object_pose = EventTerm(
+        func=franka_lift_events.randomize_object_pose,
+        mode="reset",
+        params={
+            "pose_range": {"x": (0.5, 0.5), "y": (0.20, 0.20), "z": (0.0203, 0.0203), "yaw": (0, 0, 0)},
+            "min_separation": 0.1,
+            "asset_cfgs": [SceneEntityCfg("object")],
+        },
+    )
 
 
 
@@ -346,8 +346,8 @@ class LiftEnvCfg(ManagerBasedRLEnvCfg):
     terminations: TerminationsCfg = TerminationsCfg()
     commands: CommandsCfg = CommandsCfg()  
     # commands = None
-    events = None
-    # events: EventCfg = EventCfg() 
+    # events = None
+    events: EventCfg = EventCfg() 
     curriculum: CurriculumCfg = CurriculumCfg() 
 
     def __post_init__(self):

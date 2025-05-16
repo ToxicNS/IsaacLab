@@ -60,7 +60,7 @@ class FrankaCubeLiftIKRelBlueprintMimicEnvCfg(FrankaCubeLiftBlueprintEnvCfg, Mim
                 subtask_term_signal="approach_obj",
                 # Specifies time offsets for data generation when splitting a trajectory into
                 # subtask segments. Random offsets are added to the termination boundary.                
-                subtask_term_offset_range=(10, 20),
+                subtask_term_offset_range=(0, 0),  
                 # Selection strategy for the source subtask segment during data generation                
                 selection_strategy="nearest_neighbor_object",
                 # Optional parameters for the selection strategy function
@@ -82,7 +82,7 @@ class FrankaCubeLiftIKRelBlueprintMimicEnvCfg(FrankaCubeLiftBlueprintEnvCfg, Mim
                 # Corresponding key for the binary indicator in "datagen_info" for completion
                 subtask_term_signal="grasp_obj",
                 # Time offsets for data generation when splitting a trajectory
-                subtask_term_offset_range=(5, 10),  
+                subtask_term_offset_range=(0, 0),  
                 # Selection strategy for source subtask segment
                 selection_strategy="nearest_neighbor_object",
                 # Optional parameters for the selection strategy function
@@ -104,7 +104,7 @@ class FrankaCubeLiftIKRelBlueprintMimicEnvCfg(FrankaCubeLiftBlueprintEnvCfg, Mim
                 # Corresponding key for the binary indicator in "datagen_info" for completion
                 subtask_term_signal="lift_obj",
                 # Time offsets for data generation when splitting a trajectory
-                subtask_term_offset_range=(10, 20),  
+                subtask_term_offset_range=(0, 10),  
                 # Selection strategy for source subtask segment
                 selection_strategy="nearest_neighbor_object",
                 # Optional parameters for the selection strategy function
