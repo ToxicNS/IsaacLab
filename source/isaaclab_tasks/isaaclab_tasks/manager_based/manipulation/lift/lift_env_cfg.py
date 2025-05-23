@@ -62,12 +62,19 @@ class ObjectTableSceneCfg(InteractiveSceneCfg):
         spawn=sim_utils.DomeLightCfg(color=(0.75, 0.75, 0.75), intensity=3000.0),
     )
     
-    # # camera
+    # camera
     # camera = AssetBaseCfg(
     #     prim_path="{ENV_REGEX_NS}/Camera",
-    #     #collision_props=sim_utils.CollisionPropertiesCfg(),  # Habilita a colisão sem corpo rígido
-    #     init_state=AssetBaseCfg.InitialStateCfg(pos=[1.0, 0.0, 0.5], rot=[0.0, -0.18, 0.0, 0.707]),
-    #     spawn=UsdFileCfg(usd_path="file:///home/lab4/IsaacLab/source/isaaclab_tasks/isaaclab_tasks/manager_based/manipulation/objets/rsd455.usd"),
+    #     # collision_props=sim_utils.CollisionPropertiesCfg(),  # Habilita a colisão sem corpo rígido
+    #     # init_state=AssetBaseCfg.InitialStateCfg(pos=[1.0, 0.0, 0.5], rot=[0.0, -0.18, 0.0, 0.707]),
+    #     init_state=AssetBaseCfg.InitialStateCfg(pos=[1.0, 0.0, 0.5], rot=[0.0, 0.0, -0.707, -0.707]),        
+    #     spawn=UsdFileCfg(usd_path="file:///home/lab4/IsaacLab/RSD455_noG.usd"),
+    # )
+
+    # camera = AssetBaseCfg(
+    #     prim_path="{ENV_REGEX_NS}/Camera",
+    #     init_state=AssetBaseCfg.InitialStateCfg(pos=[1.0, 0, 0.5], rot=[0, -0.259, 0, 0.966]),
+    #     spawn=UsdFileCfg(usd_path="file:///home/lab4/IsaacLab/rsd455.usd"),
     # )
 
 
@@ -203,10 +210,10 @@ class EventCfg:
         mode="reset",
         params={
             "pose_range": {
-                "x": (0.5, 0.5),
-                "y": (0.20, 0.20),
+                "x": (0.25, 0.5),
+                "y": (0.20, 0.25),
                 "z": (0.02, 0.02),
-                "yaw": (-1.0, 1.0),
+                "yaw": (-1.0, -1.0),
             },
             "velocity_range": {},
             "asset_cfg": SceneEntityCfg("object", body_names="Object"),
@@ -238,7 +245,7 @@ class EventCfg:
         func=franka_lift_events.randomize_object_pose,
         mode="reset",
         params={
-            "pose_range": {"x": (0.5, 0.5), "y": (0.20, 0.20), "z": (0.0203, 0.0203), "yaw": (0, 0, 0)},
+            "pose_range": {"x": (0.25, 0.5), "y": (0.20, 0.25), "z": (0.0203, 0.0203), "yaw": (0, 0, 0)},
             "min_separation": 0.1,
             "asset_cfgs": [SceneEntityCfg("object")],
         },

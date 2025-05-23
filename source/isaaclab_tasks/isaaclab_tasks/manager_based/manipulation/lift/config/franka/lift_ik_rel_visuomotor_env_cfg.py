@@ -13,7 +13,7 @@ from isaaclab.sensors import CameraCfg
 from isaaclab.utils import configclass
 
 from ... import mdp
-from . import stack_joint_pos_env_cfg
+from . import lift_joint_pos_env_cfg
 
 ##
 # Pre-defined configs
@@ -33,8 +33,6 @@ class ObservationsCfg:
         joint_pos = ObsTerm(func=mdp.joint_pos_rel)
         joint_vel = ObsTerm(func=mdp.joint_vel_rel)
         object = ObsTerm(func=mdp.object_obs)
-        cube_positions = ObsTerm(func=mdp.cube_positions_in_world_frame)
-        cube_orientations = ObsTerm(func=mdp.cube_orientations_in_world_frame)
         eef_pos = ObsTerm(func=mdp.ee_frame_pos)
         eef_quat = ObsTerm(func=mdp.ee_frame_quat)
         gripper_pos = ObsTerm(func=mdp.gripper_pos)
@@ -52,35 +50,45 @@ class ObservationsCfg:
     @configclass
     class SubtaskCfg(ObsGroup):
         """Observations for subtask group."""
+        # Verifica se o end-effector está próximo do objeto
 
-        grasp_1 = ObsTerm(
-            func=mdp.object_grasped,
+        approach_obj = ObsTerm(
+            func=mdp.object_approached,  # Nova função simplificada
             params={
                 "robot_cfg": SceneEntityCfg("robot"),
-                "ee_frame_cfg": SceneEntityCfg("ee_frame"),
-                "object_cfg": SceneEntityCfg("cube_2"),
+                "object_cfg": SceneEntityCfg("object"),
+                "threshold": 0.05,  # 5 cm
             },
         )
-        stack_1 = ObsTerm(
-            func=mdp.object_stacked,
-            params={
-                "robot_cfg": SceneEntityCfg("robot"),
-                "upper_object_cfg": SceneEntityCfg("cube_2"),
-                "lower_object_cfg": SceneEntityCfg("cube_1"),
-            },
-        )
-        grasp_2 = ObsTerm(
+
+        # Subtarefa de agarrar
+        grasp_obj = ObsTerm(
             func=mdp.object_grasped,
             params={
-                "robot_cfg": SceneEntityCfg("robot"),
+                # "robot_cfg": SceneEntityCfg("robot"),
+                # "ee_frame_cfg": SceneEntityCfg("ee_frame"),
+                # "object_cfg": SceneEntityCfg("object"),
                 "ee_frame_cfg": SceneEntityCfg("ee_frame"),
-                "object_cfg": SceneEntityCfg("cube_3"),
+                "object_cfg": SceneEntityCfg("object"),
+                "grasp_distance": 0.05,  # Distância máxima para considerar o objeto agarrado
+                "lift_threshold": 0.0025,  # Altura mínima para término da subtarefa (0.25 cm)
+            },
+        )
+
+        # Subtarefa de levantamento
+        lift_obj = ObsTerm(
+            func=mdp.object_lifted,
+            params={
+                "object_cfg": SceneEntityCfg("object"),
+                "lift_start": 0.0025,  # Altura mínima para início da subtarefa (0.5 cm)
+                "lift_end": 0.15,  # Altura máxima para término da subtarefa (10 cm)
             },
         )
 
         def __post_init__(self):
+            """Configurações adicionais."""
             self.enable_corruption = False
-            self.concatenate_terms = False
+            self.concatenate_terms = False            
 
     # observation groups
     policy: PolicyCfg = PolicyCfg()
@@ -88,15 +96,13 @@ class ObservationsCfg:
 
 
 @configclass
-class FrankaCubeStackVisuomotorEnvCfg(stack_joint_pos_env_cfg.FrankaCubeStackEnvCfg):
+class FrankaCubeLiftVisuomotorEnvCfg(lift_joint_pos_env_cfg.FrankaCubeLiftEnvCfg):
     observations: ObservationsCfg = ObservationsCfg()
 
     def __post_init__(self):
-        # post init of parent
         super().__post_init__()
 
         # Set Franka as robot
-        # We switch here to a stiffer PD controller for IK tracking to be better.
         self.scene.robot = FRANKA_PANDA_HIGH_PD_CFG.replace(prim_path="{ENV_REGEX_NS}/Robot")
 
         # Set actions for the specific robot type (franka)
@@ -109,7 +115,6 @@ class FrankaCubeStackVisuomotorEnvCfg(stack_joint_pos_env_cfg.FrankaCubeStackEnv
             body_offset=DifferentialInverseKinematicsActionCfg.OffsetCfg(pos=[0.0, 0.0, 0.107]),
         )
 
-        # Set cameras
         # Set wrist camera
         self.scene.wrist_cam = CameraCfg(
             prim_path="{ENV_REGEX_NS}/Robot/panda_hand/wrist_cam",
@@ -140,9 +145,6 @@ class FrankaCubeStackVisuomotorEnvCfg(stack_joint_pos_env_cfg.FrankaCubeStackEnv
             ),
         )
 
-        # Set settings for camera rendering
         self.rerender_on_reset = True
-        self.sim.render.antialiasing_mode = "OFF"  # disable dlss
-
-        # List of image observations in policy observations
+        self.sim.render.antialiasing_mode = "OFF"
         self.image_obs_list = ["table_cam", "wrist_cam"]

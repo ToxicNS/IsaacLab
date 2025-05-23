@@ -83,7 +83,6 @@ from isaaclab_assets.robots.franka import FRANKA_PANDA_CFG  # isort: skip
 #             "asset_cfgs": [SceneEntityCfg("object")],
 #             "out_focus_state": torch.tensor([10.0, 10.0, 10.0, 1.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0]),
 #             "pose_range": {"x": (0.5, 0.5), "y": (0.20, 0.20), "z": (0.0203, 0.0203), "yaw": (-1.0, 1, 0)},
-#             "min_separation": 0.1,
 #         },
 #     )
 
@@ -117,8 +116,7 @@ class EventCfg:
         func=franka_lift_events.randomize_object_pose,
         mode="reset",
         params={
-            "pose_range": {"x": (0.5, 0.5), "y": (0.20, 0.20), "z": (0.0203, 0.0203), "yaw": (0, 0, 0)},
-            "min_separation": 0.1,
+            "pose_range": {"x": (0.4, 0.5), "y": (0.15, 0.20), "z": (0.0203, 0.0203), "yaw": (0, 0, 0)},
             "asset_cfgs": [SceneEntityCfg("object")],            
         },
     )
