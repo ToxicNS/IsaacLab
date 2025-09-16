@@ -133,7 +133,7 @@ def normalize_hdf5_actions(config: Config, log_dir: str) -> str:
     return normalized_path
 
 
-def train(config: Config, device: str, log_dir: str, ckpt_dir: str, video_dir: str):
+def train(config: Config, device: str, log_dir: str, ckpt_dir: str, video_dir: str, early_stopping_patience: int = 10):
     """Train a model using the algorithm specified in config.
 
     Args:
@@ -142,6 +142,7 @@ def train(config: Config, device: str, log_dir: str, ckpt_dir: str, video_dir: s
         log_dir: Directory to save logs.
         ckpt_dir: Directory to save checkpoints.
         video_dir: Directory to save videos.
+        early_stopping_patience: Number of epochs to wait for improvement before stopping early.
     """
     # first set seeds
     np.random.seed(config.train.seed)
@@ -261,6 +262,7 @@ def train(config: Config, device: str, log_dir: str, ckpt_dir: str, video_dir: s
     # main training loop
     best_valid_loss = None
     last_ckpt_time = time.time()
+    patience_counter = 0  # Early stopping counter
 
     # number of learning steps per epoch (defaults to a full dataset pass)
     train_num_steps = config.experiment.epoch_every_n_steps
@@ -314,14 +316,31 @@ def train(config: Config, device: str, log_dir: str, ckpt_dir: str, video_dir: s
             print(f"Validation Epoch {epoch}")
             print(json.dumps(step_log, sort_keys=True, indent=4))
 
-            # save checkpoint if achieve new best validation loss
+            # Early stopping check
+            if config.experiment.validate and patience_counter >= early_stopping_patience:
+                print(f"Early stopping triggered after {patience_counter} epochs sem melhoria na validação.")
+                # Salva o modelo da última epoch antes de sair
+                TrainUtils.save_model(
+                    model=model,
+                    config=config,
+                    env_meta=env_meta,
+                    shape_meta=shape_meta,
+                    ckpt_path=os.path.join(ckpt_dir, f"model_epoch_{epoch}_early_stop.pth"),
+                    obs_normalization_stats=obs_normalization_stats,
+                )
+                break
+            # Early stopping logic
             valid_check = "Loss" in step_log
             if valid_check and (best_valid_loss is None or (step_log["Loss"] <= best_valid_loss)):
+                if best_valid_loss is None or (step_log["Loss"] < best_valid_loss):
+                    patience_counter = 0  # Reset patience if improved
                 best_valid_loss = step_log["Loss"]
                 if config.experiment.save.enabled and config.experiment.save.on_best_validation:
                     epoch_ckpt_name += f"_best_validation_{best_valid_loss}"
                     should_save_ckpt = True
                     ckpt_reason = "valid" if ckpt_reason is None else ckpt_reason
+            else:
+                patience_counter += 1  # No improvement
 
         # Save model checkpoints based on conditions (success rate, validation loss, etc)
         if should_save_ckpt:
@@ -339,6 +358,11 @@ def train(config: Config, device: str, log_dir: str, ckpt_dir: str, video_dir: s
         mem_usage = int(process.memory_info().rss / 1000000)
         data_logger.record("System/RAM Usage (MB)", mem_usage, epoch)
         print(f"\nEpoch {epoch} Memory Usage: {mem_usage} MB\n")
+
+        # # Early stopping check
+        # if config.experiment.validate and patience_counter >= early_stopping_patience:
+        #     print(f"Early stopping triggered after {patience_counter} epochs without improvement.")
+        #     break
 
     # terminate logging
     data_logger.close()
@@ -371,8 +395,14 @@ def main(args: argparse.Namespace):
             config = config_factory(ext_cfg["algo_name"])
         # update config with external json - this will throw errors if
         # the external config has keys not present in the base algo config
+        # with config.values_unlocked():
+        #     config.update(ext_cfg)
         with config.values_unlocked():
-            config.update(ext_cfg)
+            # Manually add custom keys before update
+            if "experiment" in ext_cfg and "early_stopping_patience" in ext_cfg["experiment"]:
+                config.experiment.early_stopping_patience = ext_cfg["experiment"]["early_stopping_patience"]
+                del ext_cfg["experiment"]["early_stopping_patience"]
+            config.update(ext_cfg)        
     else:
         raise ValueError("Please provide a task name through CLI arguments.")
 
@@ -396,12 +426,21 @@ def main(args: argparse.Namespace):
     config.lock()
 
     # catch error during training and print it
-    res_str = "finished run successfully!"
+    # res_str = "finished run successfully!"
+    # NS
+
+    # Define early stopping diretamente aqui
+    early_stopping_patience = 20  # <--- valor fixo
+
     try:
-        train(config, device, log_dir, ckpt_dir, video_dir)
+        train(config, device, log_dir, ckpt_dir, video_dir, early_stopping_patience=early_stopping_patience)
     except Exception as e:
         res_str = f"run failed with error:\n{e}\n\n{traceback.format_exc()}"
-    print(res_str)
+    # try:
+    #     train(config, device, log_dir, ckpt_dir, video_dir)
+    # except Exception as e:
+    #     res_str = f"run failed with error:\n{e}\n\n{traceback.format_exc()}"
+    # print(res_str)
 
 
 if __name__ == "__main__":

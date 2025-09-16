@@ -2,7 +2,7 @@
     "algo_name": "bc",
     "experiment": {
         "name": "bc_rnn_image_franka_lift",
-        "validate": false,
+        "validate": true,
         "logging": {
             "terminal_output_to_txt": true,
             "log_tb": true
@@ -10,13 +10,13 @@
         "save": {
             "enabled": true,
             "every_n_seconds": null,
-            "every_n_epochs": 20,
+            "every_n_epochs": 100,
             "epochs": [],
             "on_best_validation": false,
             "on_best_rollout_return": false,
             "on_best_rollout_success_rate": true
         },
-        "epoch_every_n_steps": 500,
+        "epoch_every_n_steps": 50,
         "env": null,
         "additional_envs": null,
         "render": false,
@@ -27,26 +27,25 @@
     },
     "train": {
         "data": null,
-        "num_data_workers": 4,
-        "hdf5_cache_mode": "all",
+        "num_data_workers": 48,
+        "hdf5_cache_mode": "low_dim",
         "hdf5_use_swmr": true,
         "hdf5_load_next_obs": false,
         "hdf5_normalize_obs": false,
-        "hdf5_filter_key": null,
-        "hdf5_validation_filter_key": null,
-        "seq_length": 10,
+        "hdf5_filter_key": "train",
+        "hdf5_validation_filter_key": "valid",
+        "seq_length": 25,
         "pad_seq_length": true,
         "frame_stack": 1,
         "pad_frame_stack": true,
         "dataset_keys": [
-            "actions",
             "rewards",
             "dones"
         ],
         "goal_mode": null,
         "cuda": true,
-        "batch_size": 16,
-        "num_epochs": 600,
+        "batch_size": 128,
+        "num_epochs": 2000,
         "seed": 101
     },
     "algo": {
@@ -54,13 +53,11 @@
             "policy": {
                 "optimizer_type": "adam",
                 "learning_rate": {
-                    "initial": 0.0001,
-                    "decay_factor": 0.1,
-                    "epoch_schedule": [],
-                    "scheduler_type": "multistep"
+                    "initial": 0.00001,
+                    "scheduler_type": "cosine"
                 },
                 "regularization": {
-                    "L2": 0.0
+                    "L2": 0.000001
                 }
             }
         },
@@ -122,19 +119,20 @@
         },
         "rnn": {
             "enabled": true,
-            "horizon": 10,
-            "hidden_dim": 1000,
+            "horizon": 25,
+            "hidden_dim": 512,
             "rnn_type": "LSTM",
             "num_layers": 2,
             "open_loop": false,
             "kwargs": {
-                "bidirectional": false
+                "bidirectional": false,
+                "dropout": 0.2
             }
         },
         "transformer": {
             "enabled": false,
             "context_length": 10,
-            "embed_dim": 512,
+            "embed_dim": 256,
             "num_layers": 6,
             "num_heads": 8,
             "emb_dropout": 0.1,
@@ -150,14 +148,12 @@
         "modalities": {
             "obs": {
                 "low_dim": [
-                    "actions",
                     "joint_pos",
                     "joint_vel",
                     "object",
                     "eef_pos",
                     "eef_quat",
-                    "gripper_pos",
-                    "target_object_position"
+                    "gripper_pos"
                 ],
                 "rgb": [
                     "table_cam",
@@ -167,7 +163,7 @@
                 "scan": []
             },
             "goal": {
-                "low_dim": [],
+                "low_dim": ["object"],
                 "rgb": [],
                 "depth": [],
                 "scan": []

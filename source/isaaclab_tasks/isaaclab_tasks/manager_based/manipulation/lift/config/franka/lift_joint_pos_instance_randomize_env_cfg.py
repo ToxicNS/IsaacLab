@@ -4,6 +4,7 @@
 # SPDX-License-Identifier: BSD-3-Clause
 
 import torch
+import math
 
 import isaaclab.sim as sim_utils
 from isaaclab.assets import RigidObjectCfg, RigidObjectCollectionCfg
@@ -106,7 +107,7 @@ class EventCfg:
         mode="reset",
         params={
             "mean": 0.0,
-            "std": 0.02,
+            "std": 0.01,
             "asset_cfg": SceneEntityCfg("robot"),
         },
     )
@@ -116,7 +117,12 @@ class EventCfg:
         func=franka_lift_events.randomize_object_pose,
         mode="reset",
         params={
-            "pose_range": {"x": (0.4, 0.5), "y": (0.15, 0.20), "z": (0.0203, 0.0203), "yaw": (0, 0, 0)},
+            # "pose_range": {"x": (0.4, 0.4), "y": (0.25, 0.25), "z": (0.0203, 0.0203), "yaw": (-math.pi / 2, -math.pi / 2), "pitch": (math.pi, math.pi)},  # 1º Teste
+            # "pose_range": {"x": (0.5, 0.5), "y": (0.25, 0.25), "z": (0.0203, 0.0203), "yaw": (0, 2* math.pi), "pitch": (math.pi, math.pi)}, # 2º Teste
+            # "pose_range": {"x": (0.4, 0.6), "y": (0.20, 0.3), "z": (0.0203, 0.0203), "yaw": (0, 2 * math.pi), "pitch": (math.pi, math.pi)}, # 3º Teste
+            "pose_range": {"x": (0.4, 0.6), "y": (0.20, 0.3), "z": (0.0203, 0.0203), "yaw": (-math.pi / 2, -math.pi / 2), "pitch": (math.pi/2, math.pi/2)," roll": (0,0)}, # 4º Teste
+            # "pose_range": {"x": (0.4, 0.6), "y": (0.20, 0.3), "z": (0.0203, 0.0203), "yaw": (0, 2 * math.pi), "pitch": (math.pi/2, math.pi/2), " roll": (0, 2 * math.pi, 0.1)}, # 5º Teste            
+            # "pose_range": {"x": (0.4, 0.6), "y": (0.20, 0.3), "z": (0.0203, 0.0203), "yaw": (0, 2 * math.pi, 0.1), "pitch": (0, 2 * math.pi, 0.1)," roll": (0, 2 * math.pi, 0.1)}, # 6º Teste
             "asset_cfgs": [SceneEntityCfg("object")],            
         },
     )
@@ -160,15 +166,27 @@ class FrankaCubeLiftInstanceRandomizeEnvCfg(LiftInstanceRandomizeEnvCfg):
         )
 
         # Set the cube to be lifted
+        # self.scene.object = RigidObjectCfg(
+        #     prim_path="{ENV_REGEX_NS}/Object",
+        #     init_state=RigidObjectCfg.InitialStateCfg(pos=[0.5, 0.0, 0.02], rot=[1, 0, 0, 0]),
+        #     spawn=UsdFileCfg(
+        #         usd_path=f"{ISAAC_NUCLEUS_DIR}/Props/Blocks/DexCube/dex_cube_instanceable.usd",                scale=(0.8, 0.8, 0.8), 
+        #         rigid_props=object_properties,  # Usar a variável object_properties aqui
+        #         semantic_tags=[("class", "object")],
+        #     ),
+        # )
+        
         self.scene.object = RigidObjectCfg(
             prim_path="{ENV_REGEX_NS}/Object",
-            init_state=RigidObjectCfg.InitialStateCfg(pos=[0.5, 0.0, 0.02], rot=[1, 0, 0, 0]),
+            init_state=RigidObjectCfg.InitialStateCfg(pos=[0.5, 0.25, 0.02], rot=[1, 0, 0, 0]),
             spawn=UsdFileCfg(
-                usd_path=f"{ISAAC_NUCLEUS_DIR}/Props/Blocks/DexCube/dex_cube_instanceable.usd",                scale=(0.8, 0.8, 0.8), 
-                rigid_props=object_properties,  # Usar a variável object_properties aqui
+                usd_path=f"/home/lab4/IsaacLab/cranco.usd",                
+                # scale=(0.8, 0.8, 0.8), 
+                rigid_props=object_properties,  
                 semantic_tags=[("class", "object")],
             ),
-        )
+        )  
+        
         self.scene.ibject = RigidObjectCollectionCfg(rigid_objects=[self.scene.object])
 
         # Set wrist camera
@@ -194,7 +212,7 @@ class FrankaCubeLiftInstanceRandomizeEnvCfg(LiftInstanceRandomizeEnvCfg):
             spawn=sim_utils.PinholeCameraCfg(
                 focal_length=24.0, focus_distance=400.0, horizontal_aperture=20.955, clipping_range=(0.1, 1.0e5)
             ),
-            offset=CameraCfg.OffsetCfg(pos=(1.0, 0.0, 0.33), rot=(-0.3799, 0.5963, 0.5963, -0.3799), convention="ros"),
+            offset=CameraCfg.OffsetCfg(pos=(1.4, 0.0, 0.66), rot=(-0.3799, 0.5963, 0.5963, -0.3799), convention="ros"),
         )
 
         # Listens to the required transforms

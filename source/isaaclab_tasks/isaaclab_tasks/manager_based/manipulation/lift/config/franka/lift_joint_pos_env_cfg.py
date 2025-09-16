@@ -2,7 +2,7 @@
 # All rights reserved.
 #
 # SPDX-License-Identifier: BSD-3-Clause
-
+import math
 from isaaclab.assets import RigidObjectCfg
 from isaaclab.managers import EventTermCfg as EventTerm
 from isaaclab.managers import SceneEntityCfg
@@ -44,7 +44,7 @@ class EventCfg:
         mode="reset",
         params={
             "mean": 0.0,
-            "std": 0.02,
+            "std": 0.05,
             "asset_cfg": SceneEntityCfg("robot"),
         },
     )
@@ -54,7 +54,12 @@ class EventCfg:
         func=franka_lift_events.randomize_object_pose,
         mode="reset",
         params={
-            "pose_range": {"x": (0.4, 0.6), "y": (0.20, 0.3), "z": (0.0203, 0.0203), "yaw": (0, 0, 0)},
+            # "pose_range": {"x": (0.4, 0.4), "y": (0.25, 0.25), "z": (0.0203, 0.0203), "yaw": (-math.pi / 2, -math.pi / 2), "pitch": (math.pi, math.pi)},  # 1º Teste
+            # "pose_range": {"x": (0.5, 0.5), "y": (0.25, 0.25), "z": (0.0203, 0.0203), "yaw": (0, 2* math.pi), "pitch": (math.pi, math.pi)}, # 2º Teste
+            # "pose_range": {"x": (0.4, 0.6), "y": (0.20, 0.3), "z": (0.0203, 0.0203), "yaw": (0, 2 * math.pi), "pitch": (math.pi, math.pi)}, # 3º Teste
+            "pose_range": {"x": (0.4, 0.6), "y": (0.20, 0.3), "z": (0.0203, 0.0203), "yaw": (-math.pi / 2, -math.pi / 2), "pitch": (math.pi/2, math.pi/2)," roll": (0,0)}, # 4º Teste
+            # "pose_range": {"x": (0.4, 0.6), "y": (0.20, 0.3), "z": (0.0203, 0.0203), "yaw": (0, 2 * math.pi), "pitch": (math.pi/2, math.pi/2), " roll": (0, 2 * math.pi, 0.1)}, # 5º Teste            
+            # "pose_range": {"x": (0.4, 0.6), "y": (0.20, 0.3), "z": (0.0203, 0.0203), "yaw": (0, 2 * math.pi, 0.1), "pitch": (0, 2 * math.pi, 0.1)," roll": (0, 2 * math.pi, 0.1)}, # 6º Teste
             "min_separation": 0.1,
             "asset_cfgs": [SceneEntityCfg("object")],            
         },
@@ -102,12 +107,23 @@ class FrankaCubeLiftEnvCfg(LiftEnvCfg):
         )
 
         # Set the cube to be lifted
+        # self.scene.object = RigidObjectCfg(
+        #     prim_path="{ENV_REGEX_NS}/Object",
+        #     init_state=RigidObjectCfg.InitialStateCfg(pos=[0.5, 0.25, 0.02], rot=[1, 0, 0, 0]),
+        #     spawn=UsdFileCfg(
+        #         usd_path=f"{ISAAC_NUCLEUS_DIR}/Props/Blocks/DexCube/dex_cube_instanceable.usd",                
+        #         scale=(0.8, 0.8, 0.8), 
+        #         rigid_props=object_properties,  
+        #         semantic_tags=[("class", "object")],
+        #     ),
+        # )
+
         self.scene.object = RigidObjectCfg(
             prim_path="{ENV_REGEX_NS}/Object",
             init_state=RigidObjectCfg.InitialStateCfg(pos=[0.5, 0.25, 0.02], rot=[1, 0, 0, 0]),
             spawn=UsdFileCfg(
-                usd_path=f"{ISAAC_NUCLEUS_DIR}/Props/Blocks/DexCube/dex_cube_instanceable.usd",                
-                scale=(0.8, 0.8, 0.8), 
+                usd_path=f"/home/lab4/IsaacLab/cranco.usd",                
+                # scale=(0.8, 0.8, 0.8), 
                 rigid_props=object_properties,  
                 semantic_tags=[("class", "object")],
             ),

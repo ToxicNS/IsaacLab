@@ -115,7 +115,7 @@ class FrankaCubeStackInstanceRandomizeEnvCfg(StackInstanceRandomizeEnvCfg):
                 init_state=RigidObjectCfg.InitialStateCfg(pos=[0.4, 0.0, 0.0403], rot=[1, 0, 0, 0]),
                 spawn=UsdFileCfg(
                     usd_path=f"{ISAAC_NUCLEUS_DIR}/Props/Blocks/red_block.usd",
-                    scale=(1.0, 1.0, 1.0),
+                    scale=(2.5, 1.0, 1.0),
                     rigid_props=cube_properties,
                 ),
             ),
@@ -127,7 +127,7 @@ class FrankaCubeStackInstanceRandomizeEnvCfg(StackInstanceRandomizeEnvCfg):
                 init_state=RigidObjectCfg.InitialStateCfg(pos=[0.55, 0.05, 0.0203], rot=[1, 0, 0, 0]),
                 spawn=UsdFileCfg(
                     usd_path=f"{ISAAC_NUCLEUS_DIR}/Props/Blocks/red_block.usd",
-                    scale=(1.0, 1.0, 1.0),
+                    scale=(2.5, 1.0, 1.0),
                     rigid_props=cube_properties,
                 ),
             ),

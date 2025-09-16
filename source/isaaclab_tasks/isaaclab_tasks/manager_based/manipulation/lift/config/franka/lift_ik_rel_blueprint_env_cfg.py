@@ -203,14 +203,14 @@ class ObservationsCfg:
         )
 
         # Subtarefa de levantamento
-        lift_obj = ObsTerm(
-            func=mdp.object_lifted,
-            params={
-                "object_cfg": SceneEntityCfg("object"),
-                "lift_start": 0.005,  # Altura mínima para início da subtarefa (0.5 cm)
-                "lift_end": 0.10,  # Altura máxima para término da subtarefa (10 cm)
-            },
-        )
+        # lift_obj = ObsTerm(
+        #     func=mdp.object_lifted,
+        #     params={
+        #         "object_cfg": SceneEntityCfg("object"),
+        #         "lift_start": 0.005,  # Altura mínima para início da subtarefa (0.5 cm)
+        #         "lift_end": 0.10,  # Altura máxima para término da subtarefa (10 cm)
+        #     },
+        # )
 
         def __post_init__(self):
             """Configurações adicionais."""
@@ -235,7 +235,7 @@ class FrankaCubeLiftBlueprintEnvCfg(lift_joint_pos_env_cfg.FrankaCubeLiftEnvCfg)
 
     def __post_init__(self):
         super().__post_init__()
-
+        
         # Set Franka as robot
         # We switch here to a stiffer PD controller for IK tracking to be better.
         self.scene.robot = FRANKA_PANDA_HIGH_PD_CFG.replace(prim_path="{ENV_REGEX_NS}/Robot")

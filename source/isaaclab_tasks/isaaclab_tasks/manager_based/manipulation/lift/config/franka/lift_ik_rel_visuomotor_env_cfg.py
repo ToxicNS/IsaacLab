@@ -70,20 +70,20 @@ class ObservationsCfg:
                 # "object_cfg": SceneEntityCfg("object"),
                 "ee_frame_cfg": SceneEntityCfg("ee_frame"),
                 "object_cfg": SceneEntityCfg("object"),
-                "grasp_distance": 0.05,  # Distância máxima para considerar o objeto agarrado
-                "lift_threshold": 0.0025,  # Altura mínima para término da subtarefa (0.25 cm)
+                "grasp_distance": 0.03,  # Distância máxima para considerar o objeto agarrado
+                "lift_threshold": 0.0050,  # Altura mínima para término da subtarefa (0.25 cm)
             },
         )
 
-        # Subtarefa de levantamento
-        lift_obj = ObsTerm(
-            func=mdp.object_lifted,
-            params={
-                "object_cfg": SceneEntityCfg("object"),
-                "lift_start": 0.0025,  # Altura mínima para início da subtarefa (0.5 cm)
-                "lift_end": 0.15,  # Altura máxima para término da subtarefa (10 cm)
-            },
-        )
+        # # Subtarefa de levantamento
+        # lift_obj = ObsTerm(
+        #     func=mdp.object_lifted,
+        #     params={
+        #         "object_cfg": SceneEntityCfg("object"),
+        #         "lift_start": 0.00003,  # Altura mínima para início da subtarefa (0.5 cm)
+        #         "lift_end": 0.00005,  # Altura máxima para término da subtarefa (10 cm)
+        #     },
+        # )
 
         def __post_init__(self):
             """Configurações adicionais."""
@@ -138,10 +138,10 @@ class FrankaCubeLiftVisuomotorEnvCfg(lift_joint_pos_env_cfg.FrankaCubeLiftEnvCfg
             width=84,
             data_types=["rgb", "distance_to_image_plane"],
             spawn=sim_utils.PinholeCameraCfg(
-                focal_length=24.0, focus_distance=400.0, horizontal_aperture=20.955, clipping_range=(0.1, 2)
+                focal_length=12.0, focus_distance=400.0, horizontal_aperture=20.955, clipping_range=(0.1, 2)
             ),
             offset=CameraCfg.OffsetCfg(
-                pos=(1.0, 0.0, 0.4), rot=(0.35355, -0.61237, -0.61237, 0.35355), convention="ros"
+                pos=(1.4, 0.0, 0.66), rot=(0.35355, -0.61237, -0.61237, 0.35355), convention="ros"
             ),
         )
 

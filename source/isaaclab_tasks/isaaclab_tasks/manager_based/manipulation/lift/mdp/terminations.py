@@ -76,7 +76,7 @@ def calculate_distance(ee_frame_cfg, object_cfg):
 
 def object_reached_goal(
     env: ManagerBasedRLEnv,
-    threshold: float = 0.05,
+    threshold: float = 0.025,
     command_name: str = "object_pose",
     robot_cfg: SceneEntityCfg = SceneEntityCfg("robot"),
     object_cfg: SceneEntityCfg = SceneEntityCfg("object"),
@@ -115,3 +115,43 @@ def object_reached_goal(
 
     # Retorna True se a distância for menor que o threshold
     return distance < threshold
+
+
+# from scipy.spatial.transform import Rotation as R
+# import numpy as np
+
+# def quat_to_euler(q):
+#     """Converte quaternion (x, y, z, w) para (roll, pitch, yaw) em radianos."""
+#     q = [q[3], q[0], q[1], q[2]]  # (w, x, y, z)
+#     return R.from_quat(q).as_euler('xyz', degrees=False)
+
+# def object_reached_goal_with_orientation(
+#     env: "ManagerBasedRLEnv",
+#     threshold: float = 0.025,
+#     threshold_yaw: float = 0.2,
+#     threshold_pitch: float = 0.2,
+#     target_yaw: float = -np.pi / 2,
+#     target_pitch: float = np.pi,
+#     command_name: str = "object_pose",
+#     robot_cfg: SceneEntityCfg = SceneEntityCfg("robot"),
+#     object_cfg: SceneEntityCfg = SceneEntityCfg("object"),
+# ) -> torch.Tensor:
+#     # Posição (igual ao original)
+#     robot: RigidObject = env.scene[robot_cfg.name]
+#     object: RigidObject = env.scene[object_cfg.name]
+#     command = env.command_manager.get_command(command_name)
+#     goal_position = command[:, :3]
+#     object_pos_r, _ = subtract_frame_transforms(
+#         robot.data.root_state_w[:, :3], robot.data.root_state_w[:, 3:7], object.data.root_pos_w[:, :3]
+#     )
+#     goal_position = goal_position.to(object_pos_r.device)
+#     distance = torch.norm(object_pos_r - goal_position, dim=1)
+#     pos_ok = distance < threshold
+
+#     # Orientação
+#     object_quat = object.data.root_quat_w
+#     rpy = torch.from_numpy(np.array([quat_to_euler(q) for q in object_quat.cpu().numpy()])).to(object_quat.device)
+#     yaw_ok = torch.abs(rpy[:, 2] - target_yaw) < threshold_yaw
+#     pitch_ok = torch.abs(rpy[:, 1] - target_pitch) < threshold_pitch
+
+#     return pos_ok & yaw_ok & pitch_ok

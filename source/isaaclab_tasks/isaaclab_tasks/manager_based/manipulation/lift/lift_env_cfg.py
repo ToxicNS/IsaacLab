@@ -3,6 +3,7 @@
 #
 # SPDX-License-Identifier: BSD-3-Clause
 
+import math
 from dataclasses import MISSING
 import torch
 import isaaclab.sim as sim_utils
@@ -92,7 +93,7 @@ class CommandsCfg:
         resampling_time_range=(5.0, 5.0),
         debug_vis=True,
         ranges=mdp.UniformPoseCommandCfg.Ranges(
-            pos_x=(0.5, 0.5), pos_y=(-0.25, -0.25), pos_z=(0.1, 0.1), roll=(0.0, 0.0), pitch=(0.0, 0.0), yaw=(0.0, 0.0)
+            pos_x=(0.65, 0.65), pos_y=(-0.0, -0.0), pos_z=(0.25, 0.25), roll=(0.0, 0.0), pitch=(0.0, 0.0), yaw=(0.0, 0.0)
         ),
     )
 
@@ -173,14 +174,14 @@ class ObservationsCfg:
         )
 
         # Subtarefa de levantamento
-        lift_obj = ObsTerm(
-            func=mdp.object_lifted,
-            params={
-                "object_cfg": SceneEntityCfg("object"),
-                "lift_start": 0.0025,  # Altura mínima para início da subtarefa (0.5 cm)
-                "lift_end": 0.15,  # Altura máxima para término da subtarefa (10 cm)
-            },
-        )
+        # lift_obj = ObsTerm(
+        #     func=mdp.object_lifted,
+        #     params={
+        #         "object_cfg": SceneEntityCfg("object"),
+        #         "lift_start": 0.0025,  # Altura mínima para início da subtarefa (0.5 cm)
+        #         "lift_end": 0.15,  # Altura máxima para término da subtarefa (10 cm)
+        #     },
+        # )
 
         def __post_init__(self):
             """Configurações adicionais."""
@@ -235,7 +236,7 @@ class EventCfg:
         mode="reset",
         params={
             "mean": 0.0,
-            "std": 0.02,
+            "std": 0.05,
             "asset_cfg": SceneEntityCfg("robot"),
         },
     )
@@ -245,7 +246,12 @@ class EventCfg:
         func=franka_lift_events.randomize_object_pose,
         mode="reset",
         params={
-            "pose_range": {"x": (0.25, 0.5), "y": (0.20, 0.25), "z": (0.0203, 0.0203), "yaw": (0, 0, 0)},
+            # "pose_range": {"x": (0.4, 0.4), "y": (0.25, 0.25), "z": (0.0203, 0.0203), "yaw": (-math.pi / 2, -math.pi / 2), "pitch": (math.pi, math.pi)},  # 1º Teste
+            # "pose_range": {"x": (0.5, 0.5), "y": (0.25, 0.25), "z": (0.0203, 0.0203), "yaw": (0, 2* math.pi), "pitch": (math.pi, math.pi)}, # 2º Teste
+            # "pose_range": {"x": (0.4, 0.6), "y": (0.20, 0.3), "z": (0.0203, 0.0203), "yaw": (0, 2 * math.pi), "pitch": (math.pi, math.pi)}, # 3º Teste
+            "pose_range": {"x": (0.4, 0.6), "y": (0.20, 0.3), "z": (0.0203, 0.0203), "yaw": (-math.pi / 2, -math.pi / 2), "pitch": (math.pi/2, math.pi/2)," roll": (0,0)}, # 4º Teste
+            # "pose_range": {"x": (0.4, 0.6), "y": (0.20, 0.3), "z": (0.0203, 0.0203), "yaw": (0, 2 * math.pi), "pitch": (math.pi/2, math.pi/2), " roll": (0, 2 * math.pi, 0.1)}, # 5º Teste            
+            # "pose_range": {"x": (0.4, 0.6), "y": (0.20, 0.3), "z": (0.0203, 0.0203), "yaw": (0, 2 * math.pi, 0.1), "pitch": (0, 2 * math.pi, 0.1)," roll": (0, 2 * math.pi, 0.1)}, # 6º Teste
             "min_separation": 0.1,
             "asset_cfgs": [SceneEntityCfg("object")],
         },
@@ -262,7 +268,7 @@ class RewardsCfg:
     object_reached_goal = RewTerm(
         func=mdp.object_goal_distance_sparse,
         params={
-            "threshold": 0.05, 
+            "threshold": 0.025, 
             "command_name": "object_pose",
             "object_cfg": SceneEntityCfg("object")
         }, 

@@ -115,6 +115,7 @@ gym.register(
     disable_env_checker=True,
 )
 
+
 # gym.register(
 #     id="Isaac-Lift-Cube-Franka-IK-Rel-v0",
 #     entry_point="isaaclab.envs:ManagerBasedRLEnv",
@@ -173,7 +174,18 @@ gym.register(
     kwargs={
         "env_cfg_entry_point": lift_ik_rel_visuomotor_env_cfg.FrankaCubeLiftVisuomotorEnvCfg,
         "robomimic_bc_cfg_entry_point": os.path.join(agents.__path__[0], "robomimic/bc_rnn_image_84.json"),
+                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                            "robomimic_bcq_cfg_entry_point": os.path.join(agents.__path__[0], "robomimic/bcq.json"),
     },
     disable_env_checker=True,
 )
 
+
+# gym.register(
+#     id="Isaac-Lift-Cube-Franka-IK-Rel-Visuomotor-v0",
+#     entry_point="isaaclab.envs:ManagerBasedRLEnv",
+#     kwargs={
+#         "env_cfg_entry_point": lift_ik_rel_visuomotor_env_cfg.FrankaCubeLiftVisuomotorEnvCfg,
+
+#     },
+#     disable_env_checker=True,
+# )

@@ -460,8 +460,8 @@ def object_approached(
 def object_lifted(
     env: ManagerBasedRLEnv,
     object_cfg: SceneEntityCfg = SceneEntityCfg("object"),
-    lift_start: float = 0.005,  # Altura mínima para considerar que o objeto foi levantado (0.5 cm)
-    lift_end: float = 0.10,  # Altura máxima para considerar que o objeto foi levantado (10 cm)
+    lift_start: float = 0.00003,  # Altura mínima para considerar que o objeto foi levantado (0.5 cm)
+    lift_end: float = 0.00005,  # Altura máxima para considerar que o objeto foi levantado (10 cm)
 ) -> torch.Tensor:
     """Detecta o início e término da subtarefa 'lift_obj'.
 
@@ -491,6 +491,3 @@ def object_lifted(
 
     # A subtarefa está ativa enquanto o objeto está dentro do intervalo
     return torch.logical_and(object_lifted, object_not_too_high)
-
-
-

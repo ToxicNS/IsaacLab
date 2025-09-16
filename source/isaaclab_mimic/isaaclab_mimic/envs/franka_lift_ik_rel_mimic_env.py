@@ -160,6 +160,6 @@ class FrankaCubeLiftIKRelMimicEnv(ManagerBasedRLMimicEnv):
         subtask_terms = self.obs_buf["subtask_terms"]
         signals["approach_obj"] = subtask_terms["approach_obj"][env_ids]
         signals["grasp_obj"] = subtask_terms["grasp_obj"][env_ids]
-        signals["lift_obj"] = subtask_terms["lift_obj"][env_ids]
+        # signals["lift_obj"] = subtask_terms["lift_obj"][env_ids]
         
         return signals
